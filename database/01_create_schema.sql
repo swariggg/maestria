@@ -4,6 +4,10 @@
 -- Motor: Microsoft SQL Server 2022 / 2025
 -- ============================================================================
 
+IF DB_ID('app_maestria') IS NULL
+    CREATE DATABASE app_maestria;
+GO
+
 USE app_maestria;
 GO
 
