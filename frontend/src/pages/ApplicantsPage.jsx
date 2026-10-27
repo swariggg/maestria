@@ -254,8 +254,8 @@ export default function ApplicantsPage({ user }) {
                     </td>
                     <td style={{ minWidth: '110px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ flex: 1, height: '8px', background: '#E6E9F2', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div style={{ width: `${app.porcentaje_avance}%`, height: '100%', background: 'var(--color-primary-text)' }}></div>
+                        <div style={{ flex: 1, height: '8px', background: 'var(--border-light)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${app.porcentaje_avance}%`, height: '100%', background: 'var(--color-navy)' }}></div>
                         </div>
                         <small style={{ fontWeight: 600 }}>{app.porcentaje_avance}%</small>
                       </div>
@@ -264,7 +264,7 @@ export default function ApplicantsPage({ user }) {
                       {app.tutor_nombre ? (
                         <span>{app.tutor_nombre}</span>
                       ) : (
-                        <span style={{ color: '#D97706', fontStyle: 'italic' }}>Sin Tutor</span>
+                        <span style={{ color: 'var(--status-warning-text)', fontStyle: 'italic' }}>Sin Tutor</span>
                       )}
                     </td>
                     <td>
@@ -273,7 +273,7 @@ export default function ApplicantsPage({ user }) {
                     <td>
                       <Badge type={app.nivel_riesgo} />
                       {app.motivo_riesgo && app.nivel_riesgo !== 'BAJO' && (
-                        <div style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '4px', maxWidth: '180px' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--status-danger-text)', marginTop: '4px', maxWidth: '180px' }}>
                           {app.motivo_riesgo}
                         </div>
                       )}
@@ -325,7 +325,7 @@ export default function ApplicantsPage({ user }) {
         title={`Asignar Tutor - ${selectedApplicant?.nombre_completo}`}
       >
         {assignError && (
-          <div style={{ background: '#FEE2E2', color: '#DC2626', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
+          <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
             {assignError}
           </div>
         )}
@@ -365,7 +365,7 @@ export default function ApplicantsPage({ user }) {
         title={`Bitácora de Seguimientos - ${selectedApplicant?.nombre_completo}`}
       >
         {followupError && (
-          <div style={{ background: '#FEE2E2', color: '#DC2626', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
+          <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
             {followupError}
           </div>
         )}
@@ -418,7 +418,7 @@ export default function ApplicantsPage({ user }) {
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <input type="radio" checked={!huboRespuesta} onChange={() => setHuboRespuesta(false)} />
-                  <span style={{ color: '#DC2626', fontWeight: 600 }}>Sin respuesta</span>
+                  <span style={{ color: 'var(--status-danger-text)', fontWeight: 600 }}>Sin respuesta</span>
                 </label>
               </div>
             </div>

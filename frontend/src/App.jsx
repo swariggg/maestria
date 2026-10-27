@@ -99,19 +99,19 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <Sidebar user={user} activeTab={activeTab} setActiveTab={setActiveTab} />
-      <div className="main-content">
+      <div className="topbar">
         <Header user={user} onLogout={handleLogout} />
-        <main className="page-body">
-          {activeTab === 'dashboard' && <DashboardPage user={user} onNavigate={setActiveTab} />}
-          {activeTab === 'enrollment' && <EnrollmentPage />}
-          {activeTab === 'applicants' && <ApplicantsPage user={user} />}
-          {activeTab === 'courses' && <CoursesPage user={user} />}
-          {activeTab === 'evidences' && <EvidencesPage user={user} />}
-          {activeTab === 'reports' && <ReportsPage user={user} />}
-          {activeTab === 'audit' && <AuditPage user={user} />}
-        </main>
+        <Sidebar user={user} activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
+      <main className="page-body">
+        {activeTab === 'dashboard' && <DashboardPage user={user} onNavigate={setActiveTab} />}
+        {activeTab === 'enrollment' && <EnrollmentPage />}
+        {activeTab === 'applicants' && <ApplicantsPage user={user} />}
+        {activeTab === 'courses' && <CoursesPage user={user} />}
+        {activeTab === 'evidences' && <EvidencesPage user={user} />}
+        {activeTab === 'reports' && <ReportsPage user={user} />}
+        {activeTab === 'audit' && <AuditPage user={user} />}
+      </main>
     </div>
   );
 }

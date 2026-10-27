@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GraduationCap, ArrowLeft, UserPlus } from 'lucide-react';
+import { ArrowLeft, UserPlus } from 'lucide-react';
 import { api } from '../services/api';
 
 const initialForm = {
@@ -51,25 +51,10 @@ export default function RegisterPage({ onRegistered, onBack }) {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-      background: 'linear-gradient(135deg, #DCE7FF 0%, #F8C7DE 100%)'
-    }}>
+    <div className="auth-screen">
       <div className="card" style={{ maxWidth: '560px', width: '100%', padding: '36px' }}>
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{
-            display: 'inline-flex',
-            background: 'var(--color-primary)',
-            padding: '14px',
-            borderRadius: '20px',
-            marginBottom: '16px'
-          }}>
-            <GraduationCap size={36} color="#701A48" />
-          </div>
+          <img src="/uide-logo.png" alt="UIDE - Universidad Internacional del Ecuador" style={{ height: '64px', marginBottom: '18px' }} />
           <h1>Crear Cuenta de Postulante</h1>
           <p style={{ color: 'var(--text-sec)', marginTop: '4px' }}>
             Regístrese para inscribirse en un curso preparatorio de maestría.
@@ -84,7 +69,7 @@ export default function RegisterPage({ onRegistered, onBack }) {
             borderRadius: '12px',
             marginBottom: '20px',
             fontSize: '0.875rem',
-            border: '1px solid #FECACA'
+            border: '1px solid var(--status-danger-border)'
           }}>
             {error}
           </div>

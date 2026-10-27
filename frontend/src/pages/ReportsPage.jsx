@@ -106,7 +106,7 @@ export default function ReportsPage({ user }) {
                 borderRadius: '16px',
                 marginBottom: '16px'
               }}>
-                <FileSpreadsheet size={28} color="#1E3A8A" />
+                <FileSpreadsheet size={28} color="var(--color-navy)" />
               </div>
               <h3>Matriz Consolidada de Seguimiento (Excel)</h3>
               <p style={{ color: 'var(--text-sec)', margin: '8px 0 16px' }}>
@@ -150,7 +150,7 @@ export default function ReportsPage({ user }) {
               borderRadius: '16px',
               marginBottom: '16px'
             }}>
-              <FileText size={28} color="#701A48" />
+              <FileText size={28} color="var(--color-primary-text)" />
             </div>
             <h3>Informe Individual de Seguimiento (PDF)</h3>
             <p style={{ color: 'var(--text-sec)', margin: '8px 0 16px' }}>

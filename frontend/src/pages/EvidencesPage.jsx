@@ -240,7 +240,7 @@ export default function EvidencesPage({ user }) {
         {/* Versiones de Entrega */}
         {(!evidenceData || evidenceData.versiones.length === 0) ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-sec)', background: 'var(--surface-muted)', borderRadius: '16px' }}>
-            <FileText size={40} color="#9CA3AF" style={{ margin: '0 auto 12px' }} />
+            <FileText size={40} color="var(--text-sec)" style={{ margin: '0 auto 12px' }} />
             <p>No se han registrado versiones entregadas para esta actividad.</p>
           </div>
         ) : (
@@ -297,7 +297,7 @@ export default function EvidencesPage({ user }) {
                     padding: '14px',
                     backgroundColor: 'var(--surface-muted)',
                     borderRadius: '12px',
-                    borderLeft: `4px solid ${v.evaluacion.resultado === 'APROBADO' ? '#10B981' : '#F59E0B'}`
+                    borderLeft: `4px solid ${v.evaluacion.resultado === 'APROBADO' ? 'var(--status-success-text)' : 'var(--status-warning-text)'}`
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: 600 }}>
@@ -311,7 +311,7 @@ export default function EvidencesPage({ user }) {
                       </p>
                     )}
                     {v.evaluacion.recomendaciones && (
-                      <p style={{ fontSize: '0.875rem', marginTop: '4px', color: '#065F46' }}>
+                      <p style={{ fontSize: '0.875rem', marginTop: '4px', color: 'var(--status-success-text)' }}>
                         <strong>Recomendaciones:</strong> {v.evaluacion.recomendaciones}
                       </p>
                     )}
@@ -330,7 +330,7 @@ export default function EvidencesPage({ user }) {
         title={`Cargar Evidencia: ${selectedAct?.titulo}`}
       >
         {uploadError && (
-          <div style={{ background: '#FEE2E2', color: '#DC2626', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
+          <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
             {uploadError}
           </div>
         )}
@@ -366,7 +366,7 @@ export default function EvidencesPage({ user }) {
         title="Evaluar y Calificar Evidencia"
       >
         {evalError && (
-          <div style={{ background: '#FEE2E2', color: '#DC2626', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
+          <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
             {evalError}
           </div>
         )}

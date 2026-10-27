@@ -93,14 +93,14 @@ export default function DashboardPage({ user, onNavigate }) {
 
       {/* KPI Cards Grid */}
       <div className="grid-cols-4" style={{ marginBottom: '28px' }}>
-        <div className="card" style={{ borderLeft: '4px solid #3B82F6' }}>
+        <div className="card card-hero">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>TOTAL POSTULANTES</small>
               <h2 style={{ fontSize: '2rem', marginTop: '4px' }}>{stats?.total_postulantes || 0}</h2>
             </div>
-            <div style={{ background: '#DBEAFE', padding: '10px', borderRadius: '12px' }}>
-              <Users size={22} color="#1E40AF" />
+            <div className="kpi-icon duo">
+              <Users size={22} color="#FFFFFF" />
             </div>
           </div>
           <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>
@@ -108,16 +108,16 @@ export default function DashboardPage({ user, onNavigate }) {
           </small>
         </div>
 
-        <div className="card" style={{ borderLeft: '4px solid #EF4444' }}>
+        <div className="card card-alert">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>RIESGO ALTO</small>
-              <h2 style={{ fontSize: '2rem', marginTop: '4px', color: '#DC2626' }}>
+              <h2 style={{ fontSize: '2rem', marginTop: '4px', color: 'var(--status-danger-text)' }}>
                 {stats?.postulantes_riesgo_alto || 0}
               </h2>
             </div>
-            <div style={{ background: '#FEE2E2', padding: '10px', borderRadius: '12px' }}>
-              <AlertTriangle size={22} color="#DC2626" />
+            <div className="kpi-icon duo">
+              <AlertTriangle size={22} color="var(--status-danger-text)" />
             </div>
           </div>
           <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>
@@ -125,16 +125,16 @@ export default function DashboardPage({ user, onNavigate }) {
           </small>
         </div>
 
-        <div className="card" style={{ borderLeft: '4px solid #F59E0B' }}>
+        <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>RIESGO MEDIO</small>
-              <h2 style={{ fontSize: '2rem', marginTop: '4px', color: '#D97706' }}>
+              <h2 style={{ fontSize: '2rem', marginTop: '4px', color: 'var(--status-warning-text)' }}>
                 {stats?.postulantes_riesgo_medio || 0}
               </h2>
             </div>
-            <div style={{ background: '#FEF3C7', padding: '10px', borderRadius: '12px' }}>
-              <Clock size={22} color="#D97706" />
+            <div className="kpi-icon duo">
+              <Clock size={22} color="var(--status-warning-text)" />
             </div>
           </div>
           <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>
@@ -142,18 +142,18 @@ export default function DashboardPage({ user, onNavigate }) {
           </small>
         </div>
 
-        <div className="card" style={{ borderLeft: '4px solid #10B981' }}>
+        <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>
                 {role === 'POSTULANTE' ? 'AVANCE ACADÉMICO' : 'SEGUIMIENTOS TOTALES'}
               </small>
-              <h2 style={{ fontSize: '2rem', marginTop: '4px', color: '#059669' }}>
+              <h2 style={{ fontSize: '2rem', marginTop: '4px', color: 'var(--status-success-text)' }}>
                 {role === 'POSTULANTE' ? `${stats?.porcentaje_cumplimiento_promedio || 0}%` : (stats?.seguimientos_totales || 0)}
               </h2>
             </div>
-            <div style={{ background: '#D1FAE5', padding: '10px', borderRadius: '12px' }}>
-              {role === 'POSTULANTE' ? <FileCheck2 size={22} color="#059669" /> : <MessageSquareWarning size={22} color="#059669" />}
+            <div className="kpi-icon duo">
+              {role === 'POSTULANTE' ? <FileCheck2 size={22} color="var(--status-success-text)" /> : <MessageSquareWarning size={22} color="var(--status-success-text)" />}
             </div>
           </div>
           <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>
@@ -192,7 +192,7 @@ export default function DashboardPage({ user, onNavigate }) {
                       <td>{act.ponderacion}%</td>
                       <td>{act.fecha_limite}</td>
                       <td>
-                        <strong style={{ color: act.dias_restantes < 5 ? '#DC2626' : 'inherit' }}>
+                        <strong style={{ color: act.dias_restantes < 5 ? 'var(--status-danger-text)' : 'inherit' }}>
                           {act.vencida ? 'Vencida' : `${act.dias_restantes} días`}
                         </strong>
                       </td>
@@ -247,7 +247,7 @@ export default function DashboardPage({ user, onNavigate }) {
                     <tr key={caso.id}>
                       <td style={{ fontWeight: 600 }}>{caso.nombre}</td>
                       <td><Badge type="PENDIENTE" text={caso.programa} /></td>
-                      <td style={{ color: '#DC2626', fontSize: '0.85rem' }}>{caso.motivo}</td>
+                      <td style={{ color: 'var(--status-danger-text)', fontSize: '0.85rem' }}>{caso.motivo}</td>
                       <td>
                         <button
                           className="btn btn-secondary"
@@ -264,7 +264,7 @@ export default function DashboardPage({ user, onNavigate }) {
             </div>
           ) : (
             <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-sec)' }}>
-              <CheckCircle2 size={32} color="#10B981" style={{ margin: '0 auto 8px' }} />
+              <CheckCircle2 size={32} color="var(--status-success-text)" style={{ margin: '0 auto 8px' }} />
               <p>No existen casos clasificados en Riesgo Alto en este momento.</p>
             </div>
           )}

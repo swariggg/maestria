@@ -1,44 +1,48 @@
 import React from 'react';
-import { LogOut, GraduationCap, Shield, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import Badge from './Badge';
+
+function getInitials(name = '') {
+  return name
+    .replace(/\(.*?\)/g, '')
+    .split(' ')
+    .filter((word) => word && !word.endsWith('.'))
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join('');
+}
 
 export default function Header({ user, onLogout }) {
   return (
     <header className="header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ 
-          background: 'var(--color-primary)', 
-          padding: '8px', 
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 2px 8px rgba(248, 199, 222, 0.4)'
-        }}>
-          <GraduationCap size={24} color="#701A48" />
-        </div>
+      <div className="brand">
+        <img src="/uide-logo.png" alt="UIDE - Universidad Internacional del Ecuador" className="brand-logo" />
+        <div className="brand-divider" />
         <div>
-          <h2 style={{ fontSize: '1.15rem', margin: 0, color: 'var(--text-main)' }}>APP - Maestría</h2>
-          <small style={{ color: 'var(--text-sec)' }}>Universidad Internacional del Ecuador (UIDE)</small>
+          <small style={{ display: 'block', lineHeight: 1.2 }}>Cursos Preparatorios de Posgrado</small>
+          <h2 style={{ fontSize: '1.15rem', margin: 0 }}>APP - Maestría</h2>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontWeight: 600, fontSize: '0.925rem' }}>{user?.nombre_completo}</div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="icon-circle" style={{ background: 'var(--color-cream)', color: 'var(--color-burgundy)', fontWeight: 700, fontSize: '0.9rem' }}>
+          {getInitials(user?.nombre_completo)}
+        </div>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.3 }}>{user?.nombre_completo}</div>
+          <div style={{ marginTop: '2px' }}>
             <Badge type={user?.rol?.codigo} text={user?.rol?.nombre} />
           </div>
         </div>
 
-        <button 
-          onClick={onLogout} 
-          className="btn btn-outline" 
-          style={{ padding: '8px 14px', fontSize: '0.875rem' }}
-          title="Cerrar Sesión Segura"
+        <button
+          onClick={onLogout}
+          className="btn btn-outline icon-circle"
+          style={{ padding: 0, boxShadow: 'var(--shadow-soft)', border: 'none' }}
+          title="Cerrar sesión"
+          aria-label="Cerrar sesión"
         >
-          <LogOut size={16} />
-          <span>Salir</span>
+          <LogOut size={17} />
         </button>
       </div>
     </header>

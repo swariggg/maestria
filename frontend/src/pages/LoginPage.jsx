@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GraduationCap, Lock, Mail, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react';
 import { api } from '../services/api';
 
 export default function LoginPage({ onLoginSuccess, onShowRegister }) {
@@ -31,26 +31,10 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-      background: 'linear-gradient(135deg, #DCE7FF 0%, #F8C7DE 100%)'
-    }}>
+    <div className="auth-screen">
       <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '36px' }}>
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{
-            display: 'inline-flex',
-            background: 'var(--color-primary)',
-            padding: '14px',
-            borderRadius: '20px',
-            boxShadow: '0 4px 15px rgba(248, 199, 222, 0.5)',
-            marginBottom: '16px'
-          }}>
-            <GraduationCap size={36} color="#701A48" />
-          </div>
+          <img src="/uide-logo.png" alt="UIDE - Universidad Internacional del Ecuador" style={{ height: '64px', marginBottom: '18px' }} />
           <h1>APP - Maestría</h1>
           <p style={{ color: 'var(--text-sec)', marginTop: '4px' }}>
             Universidad Internacional del Ecuador (UIDE)
@@ -66,7 +50,7 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
             borderRadius: '12px',
             marginBottom: '20px',
             fontSize: '0.875rem',
-            border: '1px solid #FECACA'
+            border: '1px solid var(--status-danger-border)'
           }}>
             {error}
           </div>

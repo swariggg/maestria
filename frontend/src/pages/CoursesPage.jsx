@@ -122,7 +122,7 @@ export default function CoursesPage({ user }) {
         {/* Lista de Programas y Cursos */}
         <div className="card" style={{ padding: '20px' }}>
           <h3 style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Layers size={18} color="#1E3A8A" />
+            <Layers size={18} color="var(--color-navy)" />
             <span>Cursos Activos</span>
           </h3>
 
@@ -205,7 +205,7 @@ export default function CoursesPage({ user }) {
                   </div>
 
                   <div style={{ textAlign: 'right', minWidth: '90px' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-primary-text)' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-navy)' }}>
                       {act.ponderacion}%
                     </div>
                     <small style={{ color: 'var(--text-sec)' }}>Ponderación</small>
@@ -224,7 +224,7 @@ export default function CoursesPage({ user }) {
         title={`Nueva Actividad para: ${selectedCourse?.nombre}`}
       >
         {actError && (
-          <div style={{ background: '#FEE2E2', color: '#DC2626', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
+          <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
             {actError}
           </div>
         )}
