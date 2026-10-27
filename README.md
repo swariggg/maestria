@@ -29,9 +29,9 @@ El sistema centraliza y estandariza:
 ## 2. Tecnologías y Versiones Utilizadas
 
 - **Base de Datos:** Microsoft SQL Server 2022 / 2025 (Instancia `MSSQLSERVER` local, ODBC Driver 18).
-- **Backend:** Python 3.14 / 3.12, FastAPI 0.115+, SQLAlchemy 2.0+, PyODBC 5.3+, Pydantic v2, APScheduler 3.11+, ReportLab 5.1+, OpenPyXL 3.1+.
+- **Backend:** Python 3.14 / 3.12, FastAPI 0.115+ (con `fastapi[standard]`), SQLAlchemy 2.0+, PyODBC 5.3+, Pydantic v2, APScheduler 3.11+, ReportLab 5.1+, OpenPyXL 3.1+.
 - **Frontend:** React 18, Vite 5.4, Lucide React (iconos académicos), CSS Tokens Centralizados.
-- **Herramientas de Empaquetado y Pruebas:** `uv` 0.11+, `npm` 11+, `pytest` 9.1+.
+- **Herramientas:** `pip`, `npm`, `pytest`.
 
 ---
 
@@ -64,34 +64,39 @@ Todas las cuentas de prueba están preconfiguradas con la contraseña: **`Demo20
 
 ---
 
-## 5. Instrucciones de Instalación y Ejecución Local
+## 5. Instalación y Ejecución Local
 
-### Paso 1: Inicialización de la Base de Datos en SQL Server
-Si requiere crear o reiniciar la base de datos desde la consola de Windows:
+Requisitos previos: SQL Server con ODBC Driver 18, Python 3.12+ y Node.js 20+.
+
+### Paso 1: Crear la base de datos
+Desde la raíz del proyecto:
 ```powershell
 sqlcmd -S "." -C -E -i "database\01_create_schema.sql"
 sqlcmd -S "." -C -E -i "database\02_seed_data.sql"
 ```
 
-### Paso 2: Iniciar el Backend (FastAPI)
-Ejecute el archivo por lotes `start_backend.bat` o mediante la terminal:
+### Paso 2: Backend (FastAPI)
 ```powershell
 cd backend
-# Activar entorno virtual
+python -m venv .venv
 .\.venv\Scripts\activate
-# Iniciar servidor Uvicorn
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+pip install -r requirements.txt
+copy .env.example .env      # luego edite .env con sus valores
+fastapi dev
 ```
-- API REST disponible en: `http://127.0.0.1:8000`
-- Documentación Interactiva Swagger/OpenAPI: `http://127.0.0.1:8000/docs`
+- API REST: `http://127.0.0.1:8000`
+- Documentación Swagger: `http://127.0.0.1:8000/docs`
 
-### Paso 3: Iniciar el Frontend (React + Vite)
-Ejecute el archivo por lotes `start_frontend.bat` o mediante la terminal:
+La próxima vez solo hace falta activar el entorno (`.\.venv\Scripts\activate`) y ejecutar `fastapi dev`.
+
+### Paso 3: Frontend (React + Vite)
+En otra terminal:
 ```powershell
 cd frontend
+npm install
 npm run dev
 ```
-- Aplicación web disponible en: `http://localhost:5173`
+- Aplicación web: `http://localhost:5173`
 
 ---
 
@@ -100,34 +105,33 @@ npm run dev
 Se entrega una suite de pruebas con **Pytest** que valida las reglas de negocio críticas:
 - Cifrado de contraseñas con Bcrypt.
 - Creación y verificación de tokens JWT.
-- Conexión real a SQL Server 2022/2025.
+- Conexión real a SQL Server.
 - Motor de riesgos (caso Zambrano detecta ALTO, caso Pérez detecta BAJO).
 - Validación de ponderaciones (suma exactamente 100.0%).
 - Idempotencia en recordatorios (previene envíos duplicados).
-- Generación de informe PDF individual universitario con ReportLab.
+- Generación de informe PDF individual con ReportLab.
 - Generación de matriz Excel `.xlsx` con OpenPyXL.
 
-Para ejecutar las pruebas:
+Con el entorno del backend activado:
 ```powershell
 cd backend
-.\.venv\Scripts\activate
 pytest -v
 ```
-*(Resultado actual: 9 de 9 pruebas aprobadas exitosamente).*
 
 ---
 
-## 7. Procedimiento de Respaldo y Restauración de Base de Datos
+## 7. Respaldo y Restauración de la Base de Datos
 
-### Respaldo Local (Backup)
-Haga doble clic en `backup_database.bat` o ejecute:
+### Respaldo
 ```powershell
-sqlcmd -S "." -C -E -Q "BACKUP DATABASE [app_maestria] TO DISK = N'database\backups\app_maestria.bak' WITH NOFORMAT, NOINIT, SKIP, STATS = 10"
+mkdir database\backups
+sqlcmd -S "." -C -E -Q "BACKUP DATABASE [app_maestria] TO DISK = N'C:\ruta\completa\database\backups\app_maestria.bak' WITH INIT, STATS = 10"
 ```
+*(SQL Server necesita una ruta absoluta en la que su servicio tenga permiso de escritura).*
 
-### Restauración Limpia (Restore)
+### Restauración
 ```powershell
-sqlcmd -S "." -C -E -Q "ALTER DATABASE [app_maestria] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; RESTORE DATABASE [app_maestria] FROM DISK = N'database\backups\app_maestria.bak' WITH REPLACE; ALTER DATABASE [app_maestria] SET MULTI_USER;"
+sqlcmd -S "." -C -E -Q "ALTER DATABASE [app_maestria] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; RESTORE DATABASE [app_maestria] FROM DISK = N'C:\ruta\completa\database\backups\app_maestria.bak' WITH REPLACE; ALTER DATABASE [app_maestria] SET MULTI_USER;"
 ```
 
 ---
