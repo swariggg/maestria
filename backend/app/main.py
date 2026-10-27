@@ -9,6 +9,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.programs import router as programs_router
 from app.api.v1.courses import router as courses_router
 from app.api.v1.applicants import router as applicants_router
+from app.api.v1.enrollments import router as enrollments_router
 from app.api.v1.evidences import router as evidences_router
 from app.api.v1.evaluations import router as evaluations_router
 from app.api.v1.tutors import router as tutors_router
@@ -52,6 +53,7 @@ app.include_router(auth_router, prefix=api_v1_prefix)
 app.include_router(programs_router, prefix=api_v1_prefix)
 app.include_router(courses_router, prefix=api_v1_prefix)
 app.include_router(applicants_router, prefix=api_v1_prefix)
+app.include_router(enrollments_router, prefix=api_v1_prefix)
 app.include_router(evidences_router, prefix=api_v1_prefix)
 app.include_router(evaluations_router, prefix=api_v1_prefix)
 app.include_router(tutors_router, prefix=api_v1_prefix)

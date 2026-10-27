@@ -171,6 +171,31 @@ class ApplicantListItem(BaseModel):
     tutor_nombre: Optional[str] = None
     porcentaje_avance: float = 0.0
 
+class EnrollmentCreate(BaseModel):
+    convocatoria_id: int
+
+class OpenCallOut(BaseModel):
+    id: int
+    codigo: str
+    nombre: str
+    programa_codigo: str
+    programa_nombre: str
+    fecha_apertura: date
+    fecha_cierre: date
+    fecha_inicio_preparatorio: date
+    fecha_fin_preparatorio: date
+    cursos: List[str] = []
+    inscrito: bool = False
+
+class MyEnrollmentOut(BaseModel):
+    id: int
+    convocatoria_id: int
+    convocatoria_nombre: str
+    programa_nombre: str
+    fecha_inscripcion: datetime
+    estado_proceso: str
+    cursos: List[str] = []
+
 class RequirementUploadResponse(BaseModel):
     id: int
     nombre_original: str

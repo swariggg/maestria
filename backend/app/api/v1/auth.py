@@ -8,6 +8,7 @@ from app.core.security import (
 )
 from app.core.config import settings
 from app.models.entities import Usuario, Rol, PerfilPostulante, RegistroAuditoria
+from app.services.notification_service import send_or_queue_notification
 from app.schemas.pydantic_models import LoginRequest, TokenResponse, RegisterRequest, UserOut, UserDetailOut
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
@@ -94,7 +95,25 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
         universidad_origen=data.universidad_origen
     )
     db.add(perfil)
+    db.add(RegistroAuditoria(
+        usuario_id=nuevo_usuario.id,
+        accion="REGISTRO",
+        entidad="USUARIO",
+        entidad_id=str(nuevo_usuario.id)
+    ))
     db.commit()
+
+    send_or_queue_notification(
+        db=db,
+        destinatario=nuevo_usuario,
+        tipo_evento="REGISTRO_EXITOSO",
+        asunto="UIDE: Registro exitoso en APP - Maestría",
+        cuerpo_html=(
+            f"<p>Estimado(a) <strong>{nuevo_usuario.nombre_completo}</strong>,</p>"
+            "<p>Su cuenta de postulante fue creada correctamente. "
+            "Ingrese a la plataforma para inscribirse en una convocatoria de maestría.</p>"
+        )
+    )
 
     return nuevo_usuario
 
