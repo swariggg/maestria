@@ -1,0 +1,32 @@
+# Ambientes virtuales y dependencias Python
+backend/.venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+.coverage
+htmlcov/
+
+# Dependencias Node y Build Frontend
+frontend/node_modules/
+frontend/dist/
+.npm
+*.log
+
+# Almacenamiento Privado Seguro (No subir archivos personales ni evidencias a git)
+storage/private/evidencias/*
+storage/private/documentos/*
+!storage/private/evidencias/.gitkeep
+!storage/private/documentos/.gitkeep
+
+# Secretos y variables de entorno
+backend/.env
+.env
+*.local
+
+# IDEs y SO
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
