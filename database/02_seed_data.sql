@@ -10,10 +10,10 @@ GO
 IF NOT EXISTS (SELECT 1 FROM roles WHERE codigo = 'ADMIN')
 BEGIN
     INSERT INTO roles (codigo, nombre, descripcion) VALUES
-    ('ADMIN', 'Administrador Global', 'Control total administrativo, gestión de usuarios, auditoría y parámetros globales'),
-    ('COORDINADOR', 'Coordinador de Programa', 'Gestión exclusiva de sus programas asignados, convocatorias, cursos, actividades y asignación de tutores'),
-    ('TUTOR', 'Tutor Académico', 'Seguimiento y evaluación exclusiva de los postulantes que le han sido asignados'),
-    ('POSTULANTE', 'Postulante a Maestría', 'Acceso a sus cursos asignados, entrega de evidencias, consulta de avance y notificaciones');
+    ('ADMIN', 'Administrador Global', N'Control total administrativo, gestión de usuarios, auditoría y parámetros globales'),
+    ('COORDINADOR', 'Coordinador de Programa', N'Gestión exclusiva de sus programas asignados, convocatorias, cursos, actividades y asignación de tutores'),
+    ('TUTOR', N'Tutor Académico', N'Seguimiento y evaluación exclusiva de los postulantes que le han sido asignados'),
+    ('POSTULANTE', N'Postulante a Maestría', 'Acceso a sus cursos asignados, entrega de evidencias, consulta de avance y notificaciones');
 END
 GO
 
@@ -29,7 +29,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM usuarios WHERE email = 'admin@uide.edu.ec')
     BEGIN
         INSERT INTO usuarios (email, password_hash, nombre_completo, cedula, telefono, rol_id, estado)
-        VALUES ('admin@uide.edu.ec', @PwdHash, 'Dra. María Elena Ramos (Admin)', '1710000001', '0991112222', @RolAdmin, 'ACTIVO');
+        VALUES ('admin@uide.edu.ec', @PwdHash, N'Dra. María Elena Ramos (Admin)', '1710000001', '0991112222', @RolAdmin, 'ACTIVO');
     END
 
     -- Coordinadores
@@ -38,7 +38,7 @@ BEGIN
         INSERT INTO usuarios (email, password_hash, nombre_completo, cedula, telefono, rol_id, estado)
         VALUES 
         ('coordinador.ia@uide.edu.ec', @PwdHash, 'Dr. Roberto Carlos Andrade (Coord. IA)', '1710000002', '0992223333', @RolCoord, 'ACTIVO'),
-        ('coordinador.ciber@uide.edu.ec', @PwdHash, 'MSc. Gabriela Lucía Montalvo (Coord. Ciber)', '1710000003', '0993334444', @RolCoord, 'ACTIVO');
+        ('coordinador.ciber@uide.edu.ec', @PwdHash, N'MSc. Gabriela Lucía Montalvo (Coord. Ciber)', '1710000003', '0993334444', @RolCoord, 'ACTIVO');
     END
 
     -- Tutores
@@ -47,7 +47,7 @@ BEGIN
         INSERT INTO usuarios (email, password_hash, nombre_completo, cedula, telefono, rol_id, estado)
         VALUES 
         ('tutor.ia@uide.edu.ec', @PwdHash, 'Ing. Carlos Patricio Viteri (Tutor IA)', '1710000004', '0994445555', @RolTutor, 'ACTIVO'),
-        ('tutor.ciber@uide.edu.ec', @PwdHash, 'Ing. Andrea Sofía Benítez (Tutor Ciber)', '1710000005', '0995556666', @RolTutor, 'ACTIVO');
+        ('tutor.ciber@uide.edu.ec', @PwdHash, N'Ing. Andrea Sofía Benítez (Tutor Ciber)', '1710000005', '0995556666', @RolTutor, 'ACTIVO');
     END
 
     -- Postulantes
@@ -55,8 +55,8 @@ BEGIN
     BEGIN
         INSERT INTO usuarios (email, password_hash, nombre_completo, cedula, telefono, rol_id, estado)
         VALUES 
-        ('postulante.perez@uide.edu.ec', @PwdHash, 'Juan Sebastián Pérez Castro', '1711111111', '0981001001', @RolPost, 'ACTIVO'),
-        ('postulante.morales@uide.edu.ec', @PwdHash, 'Ana María Morales Cevallos', '1711111112', '0982002002', @RolPost, 'ACTIVO'),
+        ('postulante.perez@uide.edu.ec', @PwdHash, N'Juan Sebastián Pérez Castro', '1711111111', '0981001001', @RolPost, 'ACTIVO'),
+        ('postulante.morales@uide.edu.ec', @PwdHash, N'Ana María Morales Cevallos', '1711111112', '0982002002', @RolPost, 'ACTIVO'),
         ('postulante.zambrano@uide.edu.ec', @PwdHash, 'David Fernando Zambrano Loor', '1711111113', '0983003003', @RolPost, 'ACTIVO'),
         ('postulante.alvarado@uide.edu.ec', @PwdHash, 'Elena Patricia Alvarado Vega', '1711111114', '0984004004', @RolPost, 'ACTIVO');
     END
@@ -72,7 +72,7 @@ BEGIN
     BEGIN
         INSERT INTO tutores (usuario_id, especialidad, max_postulantes, activo)
         VALUES 
-        (@IdTutor1, 'Machine Learning & Matemáticas Computacionales', 25, 1),
+        (@IdTutor1, N'Machine Learning & Matemáticas Computacionales', 25, 1),
         (@IdTutor2, 'Ciberseguridad y Normativas ISO 27001', 20, 1);
     END
 END
@@ -90,8 +90,8 @@ BEGIN
         INSERT INTO perfiles_postulante (usuario_id, direccion, ciudad, pais, titulo_tercer_nivel, universidad_origen, registrado_senescyt, contacto_emergencia, telefono_emergencia)
         VALUES
         (@IdPerez, 'Av. 6 de Diciembre y Orellana', 'Quito', 'Ecuador', 'Ingeniero en Sistemas', 'EPN', 1, 'Rosa Castro (Madre)', '0990001111'),
-        (@IdMorales, 'Calle Los Guayacanes 145', 'Guayaquil', 'Ecuador', 'Licenciada en Computación', 'ESPOL', 1, 'Marco Morales (Padre)', '0990002222'),
-        (@IdZambrano, 'Av. Amazonas N24-10', 'Quito', 'Ecuador', 'Ingeniero en Electrónica', 'UIDE', 1, 'Lorena Loor (Esposa)', '0990003333'),
+        (@IdMorales, 'Calle Los Guayacanes 145', 'Guayaquil', 'Ecuador', N'Licenciada en Computación', 'ESPOL', 1, 'Marco Morales (Padre)', '0990002222'),
+        (@IdZambrano, 'Av. Amazonas N24-10', 'Quito', 'Ecuador', N'Ingeniero en Electrónica', 'UIDE', 1, 'Lorena Loor (Esposa)', '0990003333'),
         (@IdAlvarado, 'Av. Remigio Crespo 402', 'Cuenca', 'Ecuador', 'Ingeniera de Software', 'Universidad de Cuenca', 1, 'Pedro Alvarado (Hermano)', '0990004444');
     END
 END
@@ -104,8 +104,8 @@ BEGIN
     BEGIN
         INSERT INTO programas (codigo, nombre, descripcion, estado, creado_por)
         VALUES 
-        ('MIA-01', 'Maestría en Inteligencia Artificial Aplicada', 'Programa de posgrado enfocado en modelos predictivos, deep learning y visión artificial.', 'ACTIVO', @IdAdmin),
-        ('MCG-01', 'Maestría en Ciberseguridad y Gestión de Riesgos', 'Especialización en defensa perimetral, respuesta a incidentes y cumplimiento normativo.', 'ACTIVO', @IdAdmin);
+        ('MIA-01', N'Maestría en Inteligencia Artificial Aplicada', N'Programa de posgrado enfocado en modelos predictivos, deep learning y visión artificial.', 'ACTIVO', @IdAdmin),
+        ('MCG-01', N'Maestría en Ciberseguridad y Gestión de Riesgos', N'Especialización en defensa perimetral, respuesta a incidentes y cumplimiento normativo.', 'ACTIVO', @IdAdmin);
     END
 END
 GO
@@ -149,10 +149,10 @@ BEGIN
     BEGIN
         INSERT INTO requisitos_convocatoria (convocatoria_id, nombre, descripcion, es_obligatorio, formato_permitido, tamano_max_mb)
         VALUES 
-        (@IdConvIA, 'Copia de Título de Tercer Nivel', 'Certificado o copia notariada registrada en Senescyt', 1, 'pdf', 10),
-        (@IdConvIA, 'Cédula de Identidad / Pasaporte', 'Documento de identidad legible por ambos lados', 1, 'pdf,jpg,png', 5),
-        (@IdConvIA, 'Hoja de Vida Formato UIDE', 'Curriculum vitae académico y profesional actualizado', 1, 'pdf', 10),
-        (@IdConvIA, 'Carta de Motivación', 'Exposición de motivos para cursar la maestría (máx. 2 páginas)', 0, 'pdf', 5);
+        (@IdConvIA, N'Copia de Título de Tercer Nivel', 'Certificado o copia notariada registrada en Senescyt', 1, 'pdf', 10),
+        (@IdConvIA, N'Cédula de Identidad / Pasaporte', 'Documento de identidad legible por ambos lados', 1, 'pdf,jpg,png', 5),
+        (@IdConvIA, 'Hoja de Vida Formato UIDE', N'Curriculum vitae académico y profesional actualizado', 1, 'pdf', 10),
+        (@IdConvIA, N'Carta de Motivación', N'Exposición de motivos para cursar la maestría (máx. 2 páginas)', 0, 'pdf', 5);
     END
 END
 GO
@@ -164,7 +164,7 @@ BEGIN
     BEGIN
         INSERT INTO cursos_preparatorios (convocatoria_id, codigo, nombre, descripcion, nota_minima, ponderacion_total, estado)
         VALUES 
-        (@IdConvIA2, 'CURSO-IA-101', 'Fundamentos de Matemáticas y Programación para IA', 'Nivelación en álgebra lineal, cálculo diferencial y estructuras en Python.', 70.00, 100.00, 'ACTIVO');
+        (@IdConvIA2, 'CURSO-IA-101', N'Fundamentos de Matemáticas y Programación para IA', N'Nivelación en álgebra lineal, cálculo diferencial y estructuras en Python.', 70.00, 100.00, 'ACTIVO');
     END
 END
 GO
@@ -176,10 +176,10 @@ BEGIN
     BEGIN
         INSERT INTO actividades_curso (curso_id, titulo, tipo, instrucciones, fecha_apertura, fecha_limite, ponderacion, es_obligatorio, extensiones_permitidas, tamano_max_mb, max_reenvios)
         VALUES 
-        (@IdCursoIA, 'Taller 1: Álgebra Lineal y Operaciones Matriciales', 'INDIVIDUAL', 'Resolver los ejercicios planteados en el cuaderno Jupyter y exportar informe PDF.', '2026-10-01 08:00', '2026-10-20 23:59', 25.00, 1, 'pdf,zip', 15, 3),
-        (@IdCursoIA, 'Taller 2: Programación Orientada a Objetos en Python', 'INDIVIDUAL', 'Implementar clases para carga y limpieza de datasets tabulares.', '2026-10-10 08:00', '2026-10-31 23:59', 25.00, 1, 'pdf,py,zip', 15, 3),
-        (@IdCursoIA, 'Proyecto Integrador Fase 1: Pipeline de Datos', 'PROYECTO', 'Diseñar e implementar un pipeline ETL de preparación de datos reales.', '2026-10-15 08:00', '2026-11-15 23:59', 20.00, 1, 'pdf,zip', 30, 2),
-        (@IdCursoIA, 'Proyecto Integrador Final: Modelo Predictivo Base', 'PROYECTO', 'Entrega del modelo predictivo evaluado con métricas de exactitud y reporte final.', '2026-10-25 08:00', '2026-12-10 23:59', 30.00, 1, 'pdf,zip', 40, 2);
+        (@IdCursoIA, N'Taller 1: Álgebra Lineal y Operaciones Matriciales', 'INDIVIDUAL', 'Resolver los ejercicios planteados en el cuaderno Jupyter y exportar informe PDF.', '2026-10-01 08:00', '2026-10-20 23:59', 25.00, 1, 'pdf,zip', 15, 3),
+        (@IdCursoIA, N'Taller 2: Programación Orientada a Objetos en Python', 'INDIVIDUAL', 'Implementar clases para carga y limpieza de datasets tabulares.', '2026-10-10 08:00', '2026-10-31 23:59', 25.00, 1, 'pdf,py,zip', 15, 3),
+        (@IdCursoIA, 'Proyecto Integrador Fase 1: Pipeline de Datos', 'PROYECTO', N'Diseñar e implementar un pipeline ETL de preparación de datos reales.', '2026-10-15 08:00', '2026-11-15 23:59', 20.00, 1, 'pdf,zip', 30, 2),
+        (@IdCursoIA, 'Proyecto Integrador Final: Modelo Predictivo Base', 'PROYECTO', N'Entrega del modelo predictivo evaluado con métricas de exactitud y reporte final.', '2026-10-25 08:00', '2026-12-10 23:59', 30.00, 1, 'pdf,zip', 40, 2);
     END
 END
 GO
@@ -196,10 +196,10 @@ BEGIN
     BEGIN
         INSERT INTO inscripciones (postulante_id, convocatoria_id, fecha_inscripcion, estado_proceso, nivel_riesgo, motivo_riesgo, fecha_ultimo_avance)
         VALUES 
-        (@IdPostPerez, @IdConvIA3, '2026-09-10 10:00', 'EN_CURSO', 'BAJO', 'Cumplimiento oportuno de entregas y seguimiento al día.', SYSDATETIME()),
-        (@IdPostMorales, @IdConvIA3, '2026-09-12 11:30', 'EN_CURSO', 'MEDIO', 'Taller 2 pendiente próximo a vencer (menos de 6 días) y avance inferior al esperado.', DATEADD(DAY, -4, SYSDATETIME())),
-        (@IdPostZambrano, @IdConvIA3, '2026-09-15 14:00', 'EN_CURSO', 'ALTO', 'Inactividad mayor a 7 días y 2 contactos del tutor sin respuesta.', DATEADD(DAY, -9, SYSDATETIME())),
-        (@IdPostAlvarado, @IdConvIA3, '2026-10-01 09:15', 'DOCUMENTACION_PENDIENTE', 'BAJO', 'Inscripción reciente dentro del plazo reglamentario.', SYSDATETIME());
+        (@IdPostPerez, @IdConvIA3, '2026-09-10 10:00', 'EN_CURSO', 'BAJO', N'Cumplimiento oportuno de entregas y seguimiento al día.', SYSDATETIME()),
+        (@IdPostMorales, @IdConvIA3, '2026-09-12 11:30', 'EN_CURSO', 'MEDIO', N'Taller 2 pendiente próximo a vencer (menos de 6 días) y avance inferior al esperado.', DATEADD(DAY, -4, SYSDATETIME())),
+        (@IdPostZambrano, @IdConvIA3, '2026-09-15 14:00', 'EN_CURSO', 'ALTO', N'Inactividad mayor a 7 días y 2 contactos del tutor sin respuesta.', DATEADD(DAY, -9, SYSDATETIME())),
+        (@IdPostAlvarado, @IdConvIA3, '2026-10-01 09:15', 'DOCUMENTACION_PENDIENTE', 'BAJO', N'Inscripción reciente dentro del plazo reglamentario.', SYSDATETIME());
     END
 END
 GO
@@ -261,7 +261,7 @@ BEGIN
         DECLARE @IdVersionPerez INT = SCOPE_IDENTITY();
 
         INSERT INTO evaluaciones_evidencia (version_id, evaluador_id, puntaje_obtenido, resultado, observaciones, recomendaciones, fecha_evaluacion)
-        VALUES (@IdVersionPerez, @IdTutorIAUser2, 24.50, 'APROBADO', 'Excelente resolución de sistemas lineales y claridad metodológica.', 'Continuar con el mismo rigor para el Taller 2.', '2026-10-19 11:00');
+        VALUES (@IdVersionPerez, @IdTutorIAUser2, 24.50, 'APROBADO', N'Excelente resolución de sistemas lineales y claridad metodológica.', 'Continuar con el mismo rigor para el Taller 2.', '2026-10-19 11:00');
     END
 END
 GO
@@ -277,10 +277,10 @@ BEGIN
     BEGIN
         INSERT INTO seguimientos_postulante (inscripcion_id, tutor_id, fecha_contacto, tipo_contacto, motivo, accion_realizada, resultado, respuesta_postulante, hubo_respuesta, proxima_accion, fecha_proxima_accion, estado_caso)
         VALUES 
-        (@IdInscPerez4, @IdTutorIAUser3, '2026-10-12 15:00', 'VIDEOCONFERENCIA', 'Revisión de dudas en Álgebra Lineal', 'Se explicaron conceptos de autovectores y descomposición SVD.', 'Postulante comprendió la teoría y finalizó los ejercicios del Taller 1.', 'Agradeció la sesión y confirmó entrega anticipada.', 1, 'Revisar avance en Proyecto Fase 1', '2026-11-05 10:00', 'RESUELTO'),
-        (@IdInscMorales4, @IdTutorIAUser3, '2026-10-21 16:30', 'WHATSAPP', 'Recordatorio de Taller 2 próximo a vencer', 'Mensaje de alerta sobre fecha límite y disponibilidad para tutoría.', 'Postulante indicó tener dudas en estructuras POO.', 'Mencionó que enviará borrador el fin de semana.', 1, 'Agendar sesión de apoyo en vivo', '2026-10-28 17:00', 'EN_PROCESO'),
-        (@IdInscZambrano4, @IdTutorIAUser3, '2026-10-18 10:00', 'TELEFONO', 'Alerta de inactividad de 5 días', 'Llamada telefónica a celular registrado.', 'Teléfono sonó sin respuesta. Se envió correo de seguimiento.', 'Sin respuesta del postulante.', 0, 'Reintentar llamada en 48 horas', '2026-10-20 10:00', 'EN_PROCESO'),
-        (@IdInscZambrano4, @IdTutorIAUser3, '2026-10-21 11:30', 'CORREO', 'Segundo intento de contacto por inactividad crítica', 'Envío de correo formal de seguimiento académico con copia a coordinación.', 'Mensaje entregado al servidor de correo.', 'Sin respuesta transcurridas 72 horas.', 0, 'Escalar caso a Coordinación de Maestría', '2026-10-26 09:00', 'ESCALADO');
+        (@IdInscPerez4, @IdTutorIAUser3, '2026-10-12 15:00', 'VIDEOCONFERENCIA', N'Revisión de dudas en Álgebra Lineal', N'Se explicaron conceptos de autovectores y descomposición SVD.', N'Postulante comprendió la teoría y finalizó los ejercicios del Taller 1.', N'Agradeció la sesión y confirmó entrega anticipada.', 1, 'Revisar avance en Proyecto Fase 1', '2026-11-05 10:00', 'RESUELTO'),
+        (@IdInscMorales4, @IdTutorIAUser3, '2026-10-21 16:30', 'WHATSAPP', N'Recordatorio de Taller 2 próximo a vencer', N'Mensaje de alerta sobre fecha límite y disponibilidad para tutoría.', N'Postulante indicó tener dudas en estructuras POO.', N'Mencionó que enviará borrador el fin de semana.', 1, N'Agendar sesión de apoyo en vivo', '2026-10-28 17:00', 'EN_PROCESO'),
+        (@IdInscZambrano4, @IdTutorIAUser3, '2026-10-18 10:00', 'TELEFONO', N'Alerta de inactividad de 5 días', N'Llamada telefónica a celular registrado.', N'Teléfono sonó sin respuesta. Se envió correo de seguimiento.', 'Sin respuesta del postulante.', 0, 'Reintentar llamada en 48 horas', '2026-10-20 10:00', 'EN_PROCESO'),
+        (@IdInscZambrano4, @IdTutorIAUser3, '2026-10-21 11:30', 'CORREO', N'Segundo intento de contacto por inactividad crítica', N'Envío de correo formal de seguimiento académico con copia a coordinación.', 'Mensaje entregado al servidor de correo.', 'Sin respuesta transcurridas 72 horas.', 0, N'Escalar caso a Coordinación de Maestría', '2026-10-26 09:00', 'ESCALADO');
     END
 END
 GO
@@ -294,11 +294,11 @@ BEGIN
     BEGIN
         INSERT INTO alertas_riesgo (inscripcion_id, tipo_alerta, nivel_riesgo, motivo_detallado, resuelta)
         VALUES 
-        (@IdInscZambrano5, 'INACTIVIDAD', 'ALTO', 'Postulante acumula más de 8 días sin registro de actividad académica significativa.', 0),
+        (@IdInscZambrano5, 'INACTIVIDAD', 'ALTO', N'Postulante acumula más de 8 días sin registro de actividad académica significativa.', 0),
         (@IdInscZambrano5, 'CONTACTO_SIN_RESPUESTA', 'ALTO', 'Dos intentos consecutivos de contacto documentados por el tutor sin respuesta del postulante.', 0),
-        (@IdInscMorales5, 'VENCIMIENTO_PROXIMO', 'MEDIO', 'Taller 2 vence en menos de 6 días sin evidencia cargada.', 0);
+        (@IdInscMorales5, 'VENCIMIENTO_PROXIMO', 'MEDIO', N'Taller 2 vence en menos de 6 días sin evidencia cargada.', 0);
     END
 END
 GO
 
-PRINT 'Demostración completa y configurada al 100% en app_maestria.';
+PRINT N'Demostración completa y configurada al 100% en app_maestria.';

@@ -547,4 +547,4 @@ BEGIN
 END
 GO
 
-PRINT 'Esquema completo de APP - Maestría creado exitosamente en app_maestria.';
+PRINT N'Esquema completo de APP - Maestría creado exitosamente en app_maestria.';
