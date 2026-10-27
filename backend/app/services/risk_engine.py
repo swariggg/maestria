@@ -6,12 +6,12 @@ from app.models.entities import (
 )
 from app.core.config import settings
 
-def evaluate_applicant_risk(db: Session, inscripcion_id: int) -> dict:
+def evaluate_applicant_risk(db: Session, inscripcion_id: int, ahora: datetime = None) -> dict:
     inscripcion = db.query(Inscripcion).filter(Inscripcion.id == inscripcion_id).first()
     if not inscripcion:
         return {"error": "Inscripcion no encontrada"}
     
-    ahora = datetime.now()
+    ahora = ahora or datetime.now()
     dias_inactividad_limite = settings.DIAS_INACTIVIDAD_RIESGO
     intentos_sin_respuesta_limite = settings.INTENTOS_SIN_RESPUESTA_ALERTA
     

@@ -1,10 +1,15 @@
 import pytest
+from datetime import datetime
 from app.core.security import verify_password, get_password_hash, create_access_token, decode_access_token
 from app.core.database import SessionLocal
 from app.services.risk_engine import evaluate_applicant_risk, evaluate_all_active_applicants
 from app.services.notification_service import check_and_send_deadline_reminders
 from app.services.report_generator import generate_individual_pdf_report, generate_consolidated_excel_report
 from app.models.entities import Inscripcion, Usuario, ActividadCurso, CursoPreparatorio
+
+# Fecha fija para las pruebas que dependen del calendario de actividades del seed:
+# el Taller 1 de Pérez ya está aprobado y el Taller 2 (vence 2026-10-31) aún está lejos.
+FECHA_REFERENCIA = datetime(2026, 10, 19, 12, 0)
 
 def test_password_hashing():
     pwd = "TestSecurePassword123!"
@@ -53,7 +58,7 @@ def test_risk_evaluation_perez_low_risk():
         inscripcion = db.query(Inscripcion).filter(Inscripcion.postulante_id == perez.id).first()
         assert inscripcion is not None
 
-        resultado = evaluate_applicant_risk(db, inscripcion.id)
+        resultado = evaluate_applicant_risk(db, inscripcion.id, ahora=FECHA_REFERENCIA)
         assert resultado["nivel_riesgo"] == "BAJO"
     finally:
         db.close()
