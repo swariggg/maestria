@@ -1,10 +1,4 @@
-# APP - Maestría: Sistema de Gestión de Cursos Preparatorios
-
-**Institución:** Universidad Internacional del Ecuador (UIDE)  
-**Versión:** 1.0.0  
-**Fecha:** Octubre 2026  
-**Estado:** Totalmente Funcional, Probado y Verificado Localmente  
-
+# APP - Maestría
 ---
 
 ## 1. Descripción General del Proyecto
