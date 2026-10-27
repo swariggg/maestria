@@ -205,7 +205,18 @@ export default function DashboardPage({ user, onNavigate }) {
               </table>
             </div>
           ) : (
-            <p style={{ color: 'var(--text-sec)' }}>No tiene actividades pendientes en este momento.</p>
+            stats?.total_postulantes === 0 ? (
+              <div>
+                <p style={{ color: 'var(--text-sec)', marginBottom: '12px' }}>
+                  Aún no está inscrito en ninguna convocatoria de maestría.
+                </p>
+                <button className="btn btn-primary" onClick={() => onNavigate('enrollment')}>
+                  Ir a Inscripción
+                </button>
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-sec)' }}>No tiene actividades pendientes en este momento.</p>
+            )
           )}
         </div>
       ) : (

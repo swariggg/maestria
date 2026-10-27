@@ -62,6 +62,8 @@ Todas las cuentas de prueba están preconfiguradas con la contraseña: **`Demo20
 
 *(La pantalla de inicio de sesión incluye botones de acceso rápido con 1 solo clic para alternar entre roles).*
 
+Un postulante nuevo puede crear su cuenta desde **"Crear cuenta"** en la pantalla de inicio de sesión y luego inscribirse en una convocatoria abierta desde la sección **Inscripción**. Al inscribirse se le asignan automáticamente todos los cursos preparatorios activos de esa convocatoria.
+
 ---
 
 ## 5. Instalación y Ejecución Local
@@ -71,8 +73,14 @@ Requisitos previos: SQL Server con ODBC Driver 18, Python 3.12+ y Node.js 20+.
 ### Paso 1: Crear la base de datos
 Desde la raíz del proyecto:
 ```powershell
-sqlcmd -S "." -C -E -i "database\01_create_schema.sql"
-sqlcmd -S "." -C -E -i "database\02_seed_data.sql"
+sqlcmd -S "." -C -E -f 65001 -i "database\01_create_schema.sql"
+sqlcmd -S "." -C -E -f 65001 -i "database\02_seed_data.sql"
+```
+La opción `-f 65001` hace que `sqlcmd` lea los scripts como UTF-8. Sin ella, las tildes y la ñ se guardan mal (por ejemplo, "MaestrÃa").
+
+Para reiniciar la base desde cero (borra todos los datos), detenga el backend y ejecute antes:
+```powershell
+sqlcmd -S "." -C -E -Q "ALTER DATABASE [app_maestria] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [app_maestria];"
 ```
 
 ### Paso 2: Backend (FastAPI)

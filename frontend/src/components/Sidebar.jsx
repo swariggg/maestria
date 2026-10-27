@@ -6,7 +6,8 @@ import {
   FileCheck, 
   BarChart3, 
   ShieldAlert, 
-  History 
+  History,
+  ClipboardList
 } from 'lucide-react';
 
 export default function Sidebar({ user, activeTab, setActiveTab }) {
@@ -14,6 +15,7 @@ export default function Sidebar({ user, activeTab, setActiveTab }) {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
+    { id: 'enrollment', label: 'Inscripción', icon: ClipboardList, roles: ['POSTULANTE'] },
     { id: 'applicants', label: 'Postulantes', icon: Users, roles: ['ADMIN', 'COORDINADOR', 'TUTOR'] },
     { id: 'courses', label: 'Programas y Cursos', icon: BookOpen, roles: ['ADMIN', 'COORDINADOR', 'POSTULANTE'] },
     { id: 'evidences', label: 'Evidencias', icon: FileCheck, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },

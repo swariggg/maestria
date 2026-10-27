@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { GraduationCap, Lock, Mail, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function LoginPage({ onLoginSuccess }) {
+export default function LoginPage({ onLoginSuccess, onShowRegister }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -115,6 +115,17 @@ export default function LoginPage({ onLoginSuccess }) {
             <ArrowRight size={18} />
           </button>
         </form>
+
+        <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.9rem', color: 'var(--text-sec)' }}>
+          ¿Es postulante y aún no tiene cuenta?{' '}
+          <button
+            type="button"
+            onClick={onShowRegister}
+            style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-main)', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}
+          >
+            Crear cuenta
+          </button>
+        </p>
 
         {/* Cuentas de Demostración para Pruebas Inmediatas */}
         <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border-light)' }}>

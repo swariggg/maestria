@@ -8,12 +8,15 @@ import CoursesPage from './pages/CoursesPage';
 import EvidencesPage from './pages/EvidencesPage';
 import ReportsPage from './pages/ReportsPage';
 import AuditPage from './pages/AuditPage';
+import RegisterPage from './pages/RegisterPage';
+import EnrollmentPage from './pages/EnrollmentPage';
 import { api } from './services/api';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
+  const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -74,7 +77,24 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginPage onLoginSuccess={(loggedInUser) => setUser(loggedInUser)} />;
+    if (showRegister) {
+      return (
+        <RegisterPage
+          onRegistered={(newUser) => {
+            setShowRegister(false);
+            setUser(newUser);
+            setActiveTab('enrollment');
+          }}
+          onBack={() => setShowRegister(false)}
+        />
+      );
+    }
+    return (
+      <LoginPage
+        onLoginSuccess={(loggedInUser) => setUser(loggedInUser)}
+        onShowRegister={() => setShowRegister(true)}
+      />
+    );
   }
 
   return (
@@ -84,6 +104,7 @@ export default function App() {
         <Header user={user} onLogout={handleLogout} />
         <main className="page-body">
           {activeTab === 'dashboard' && <DashboardPage user={user} onNavigate={setActiveTab} />}
+          {activeTab === 'enrollment' && <EnrollmentPage />}
           {activeTab === 'applicants' && <ApplicantsPage user={user} />}
           {activeTab === 'courses' && <CoursesPage user={user} />}
           {activeTab === 'evidences' && <EvidencesPage user={user} />}
