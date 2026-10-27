@@ -111,10 +111,10 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
           </button>
         </p>
 
-        {/* Cuentas de Demostración para Pruebas Inmediatas */}
+        {/* Usuarios de prueba */}
         <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border-light)' }}>
           <small style={{ display: 'block', fontWeight: 600, color: 'var(--text-sec)', marginBottom: '10px' }}>
-            ACCESO RÁPIDO PARA EVALUACIÓN (DEMO):
+            USUARIOS DE PRUEBA
           </small>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             <button
@@ -123,7 +123,7 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
               className="btn btn-outline"
               style={{ padding: '6px 10px', fontSize: '0.775rem' }}
             >
-              👑 Administrador
+              Administrador
             </button>
             <button
               type="button"
@@ -131,7 +131,7 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
               className="btn btn-outline"
               style={{ padding: '6px 10px', fontSize: '0.775rem' }}
             >
-              🎓 Coordinador IA
+              Coordinador IA
             </button>
             <button
               type="button"
@@ -139,7 +139,7 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
               className="btn btn-outline"
               style={{ padding: '6px 10px', fontSize: '0.775rem' }}
             >
-              👨‍🏫 Tutor IA
+              Tutor IA
             </button>
             <button
               type="button"
@@ -147,7 +147,7 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
               className="btn btn-outline"
               style={{ padding: '6px 10px', fontSize: '0.775rem' }}
             >
-              🟢 Postulante Pérez (Bajo Riesgo)
+              Postulante Pérez (riesgo bajo)
             </button>
             <button
               type="button"
@@ -155,11 +155,11 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
               className="btn btn-outline"
               style={{ padding: '6px 10px', fontSize: '0.775rem' }}
             >
-              🔴 Postulante Zambrano (Alto Riesgo)
+              Postulante Zambrano (riesgo alto)
             </button>
           </div>
           <small style={{ display: 'block', color: 'var(--text-sec)', marginTop: '8px', fontSize: '0.75rem' }}>
-            Contraseña universal de prueba: <code>Demo2026!</code>
+            Contraseña de los usuarios de prueba: <code>Demo2026!</code>
           </small>
         </div>
       </div>
