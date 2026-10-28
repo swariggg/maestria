@@ -79,12 +79,22 @@ class ProgramOut(BaseModel):
 
 class ConvocatoriaCreate(BaseModel):
     programa_id: int
-    codigo: str
-    nombre: str
+    codigo: str = Field(min_length=2, max_length=50)
+    nombre: str = Field(min_length=3, max_length=200)
     fecha_apertura: date
     fecha_cierre: date
     fecha_inicio_preparatorio: date
     fecha_fin_preparatorio: date
+
+class ConvocatoriaUpdate(BaseModel):
+    nombre: str = Field(min_length=3, max_length=200)
+    fecha_apertura: date
+    fecha_cierre: date
+    fecha_inicio_preparatorio: date
+    fecha_fin_preparatorio: date
+
+class ConvocatoriaEstadoUpdate(BaseModel):
+    estado: str
 
 class ConvocatoriaOut(BaseModel):
     id: int

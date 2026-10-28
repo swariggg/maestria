@@ -5,9 +5,9 @@ export default function Badge({ type, text }) {
   let badgeClass = 'badge-pending';
   let Icon = Info;
 
-  const upper = (text || type || '').toUpperCase();
+  const upper = (type || text || '').toUpperCase();
 
-  if (['APROBADO', 'BAJO', 'ACTIVO', 'COMPLETADO', 'DOCUMENTACION_COMPLETA', 'RESUELTO'].includes(upper)) {
+  if (['APROBADO', 'BAJO', 'ACTIVO', 'COMPLETADO', 'DOCUMENTACION_COMPLETA', 'RESUELTO', 'ABIERTA'].includes(upper)) {
     badgeClass = 'badge-success';
     Icon = CheckCircle2;
   } else if (['MEDIO', 'EN_PROCESO', 'REQUIERE_CORRECCION', 'DOCUMENTACION_PENDIENTE'].includes(upper)) {
@@ -16,7 +16,7 @@ export default function Badge({ type, text }) {
   } else if (['ALTO', 'RECHAZADO', 'REPROBADO', 'ESCALADO', 'BLOQUEADO', 'FALLIDO'].includes(upper)) {
     badgeClass = 'badge-danger';
     Icon = AlertCircle;
-  } else if (['PENDIENTE', 'REGISTRADO', 'EN_CURSO', 'PLANIFICADA', 'ABIERTA', 'ENTREGADO'].includes(upper)) {
+  } else if (['PENDIENTE', 'REGISTRADO', 'EN_CURSO', 'PLANIFICADA', 'ENTREGADO'].includes(upper)) {
     badgeClass = 'badge-pending';
     Icon = Clock;
   }

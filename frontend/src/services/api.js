@@ -66,6 +66,8 @@ export const api = {
   createProgram: (data) => apiRequest('/programas', { method: 'POST', body: JSON.stringify(data) }),
   getConvocatorias: (progId) => apiRequest(`/programas/${progId}/convocatorias`),
   createConvocatoria: (data) => apiRequest('/programas/convocatorias', { method: 'POST', body: JSON.stringify(data) }),
+  updateConvocatoria: (id, data) => apiRequest(`/programas/convocatorias/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  changeConvocatoriaEstado: (id, estado) => apiRequest(`/programas/convocatorias/${id}/estado`, { method: 'PATCH', body: JSON.stringify({ estado }) }),
 
   // Cursos y Actividades
   getCourses: (convId) => apiRequest(`/cursos${convId ? `?convocatoria_id=${convId}` : ''}`),
