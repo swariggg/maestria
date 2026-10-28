@@ -1,3 +1,4 @@
+import json
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -25,31 +26,41 @@ def list_programs(current_user: Usuario = Depends(get_current_user), db: Session
 @router.post("", response_model=ProgramOut)
 def create_program(
     data: ProgramCreate, 
-    current_user: Usuario = Depends(require_roles("ADMIN")), 
+    current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR")), 
     db: Session = Depends(get_db)
 ):
-    if db.query(Programa).filter(Programa.codigo == data.codigo.upper()).first():
+    codigo = data.codigo.strip().upper()
+    if db.query(Programa).filter(Programa.codigo == codigo).first():
         raise HTTPException(status_code=400, detail="El código de programa ya existe.")
 
     prog = Programa(
-        codigo=data.codigo.upper(),
+        codigo=codigo,
         nombre=data.nombre,
         descripcion=data.descripcion,
         estado="ACTIVO",
         creado_por=current_user.id
     )
     db.add(prog)
-    db.commit()
-    db.refresh(prog)
+    db.flush()
+
+    # El coordinador que crea el programa queda asignado a él para poder gestionarlo
+    if current_user.rol.codigo == "COORDINADOR":
+        db.add(CoordinadorPrograma(
+            programa_id=prog.id,
+            coordinador_id=current_user.id,
+            activo=True,
+            asignado_por=current_user.id
+        ))
 
     db.add(RegistroAuditoria(
         usuario_id=current_user.id,
         accion="CREAR_PROGRAMA",
         entidad="PROGRAMA",
         entidad_id=str(prog.id),
-        datos_nuevos_json=f'{{"codigo": "{prog.codigo}", "nombre": "{prog.nombre}"}}'
+        datos_nuevos_json=json.dumps({"codigo": prog.codigo, "nombre": prog.nombre}, ensure_ascii=False)
     ))
     db.commit()
+    db.refresh(prog)
     return prog
 
 @router.get("/{programa_id}/convocatorias", response_model=List[ConvocatoriaOut])

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Plus, Calendar, CheckSquare, Layers, Award } from 'lucide-react';
+import { BookOpen, Plus, Layers, GraduationCap } from 'lucide-react';
 import { api } from '../services/api';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
@@ -20,6 +20,15 @@ export default function CoursesPage({ user }) {
   const [actWeight, setActWeight] = useState(25);
   const [actDeadline, setActDeadline] = useState('');
   const [actError, setActError] = useState(null);
+
+  // Modal Crear Programa
+  const [showAddProgModal, setShowAddProgModal] = useState(false);
+  const [progCode, setProgCode] = useState('');
+  const [progName, setProgName] = useState('');
+  const [progDescription, setProgDescription] = useState('');
+  const [progError, setProgError] = useState(null);
+  const [progSaving, setProgSaving] = useState(false);
+  const [progSuccess, setProgSuccess] = useState(null);
 
   const loadData = async () => {
     try {
@@ -94,7 +103,36 @@ export default function CoursesPage({ user }) {
     }
   };
 
+  const openAddProgram = () => {
+    setProgCode('');
+    setProgName('');
+    setProgDescription('');
+    setProgError(null);
+    setShowAddProgModal(true);
+  };
+
+  const handleCreateProgram = async (e) => {
+    e.preventDefault();
+    setProgError(null);
+    setProgSaving(true);
+    try {
+      const nuevo = await api.createProgram({
+        codigo: progCode,
+        nombre: progName,
+        descripcion: progDescription || null
+      });
+      setPrograms(await api.getPrograms());
+      setShowAddProgModal(false);
+      setProgSuccess(`Programa ${nuevo.codigo} creado correctamente.`);
+    } catch (err) {
+      setProgError(err.message);
+    } finally {
+      setProgSaving(false);
+    }
+  };
+
   const role = user?.rol?.codigo;
+  const canManage = ['ADMIN', 'COORDINADOR'].includes(role);
   const sumaPonderaciones = activities.reduce((acc, a) => acc + parseFloat(a.ponderacion || 0), 0);
 
   return (
@@ -107,16 +145,67 @@ export default function CoursesPage({ user }) {
           </p>
         </div>
 
-        {['ADMIN', 'COORDINADOR'].includes(role) && selectedCourse && (
-          <button
-            onClick={() => { setActError(null); setShowAddActModal(true); }}
-            className="btn btn-primary"
-          >
-            <Plus size={16} />
-            <span>Nueva Actividad / Proyecto</span>
-          </button>
+        {canManage && (
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button onClick={openAddProgram} className="btn btn-primary">
+              <Plus size={16} />
+              <span>Nuevo Programa</span>
+            </button>
+            {selectedCourse && (
+              <button
+                onClick={() => { setActError(null); setShowAddActModal(true); }}
+                className="btn btn-secondary"
+              >
+                <Plus size={16} />
+                <span>Nueva Actividad / Proyecto</span>
+              </button>
+            )}
+          </div>
         )}
       </div>
+
+      {progSuccess && (
+        <div style={{
+          background: 'var(--status-success-bg)',
+          color: 'var(--status-success-text)',
+          padding: '12px 18px',
+          borderRadius: '16px',
+          marginBottom: '20px',
+          fontWeight: 500
+        }}>
+          {progSuccess}
+        </div>
+      )}
+
+      {/* Programas de Maestría */}
+      <h3 style={{ marginBottom: '12px' }}>Programas de Maestría</h3>
+      {!loading && programs.length === 0 ? (
+        <div className="card" style={{ marginBottom: '28px' }}>
+          <p style={{ color: 'var(--text-sec)' }}>
+            {canManage ? 'Aún no hay programas. Cree el primero con "Nuevo Programa".' : 'No hay programas disponibles.'}
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+          {programs.map((prog) => (
+            <div key={prog.id} className="card" style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+              <div className="kpi-icon duo">
+                <GraduationCap size={22} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '6px' }}>
+                  <Badge type="PENDIENTE" text={prog.codigo} />
+                  <Badge type={prog.estado} />
+                </div>
+                <h3 style={{ fontSize: '1rem', lineHeight: 1.35 }}>{prog.nombre}</h3>
+                {prog.descripcion && (
+                  <small style={{ display: 'block', marginTop: '4px' }}>{prog.descripcion}</small>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
         {/* Lista de Programas y Cursos */}
@@ -216,6 +305,74 @@ export default function CoursesPage({ user }) {
           )}
         </div>
       </div>
+
+      {/* Modal Crear Programa */}
+      <Modal
+        isOpen={showAddProgModal}
+        onClose={() => setShowAddProgModal(false)}
+        title="Nuevo Programa de Maestría"
+      >
+        {progError && (
+          <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', padding: '10px 14px', borderRadius: '12px', marginBottom: '14px', fontSize: '0.875rem' }}>
+            {progError}
+          </div>
+        )}
+        <form onSubmit={handleCreateProgram}>
+          <div className="form-group">
+            <label className="form-label">Código del Programa</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Ej. MDS-01"
+              value={progCode}
+              onChange={(e) => setProgCode(e.target.value.toUpperCase())}
+              minLength={2}
+              maxLength={50}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Nombre del Programa</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Ej. Maestría en Ciencia de Datos"
+              value={progName}
+              onChange={(e) => setProgName(e.target.value)}
+              minLength={3}
+              maxLength={250}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Descripción</label>
+            <textarea
+              className="form-textarea"
+              rows={3}
+              placeholder="Enfoque, perfil de egreso y líneas de investigación..."
+              value={progDescription}
+              onChange={(e) => setProgDescription(e.target.value)}
+            />
+          </div>
+
+          {role === 'COORDINADOR' && (
+            <small style={{ display: 'block', marginBottom: '8px' }}>
+              Quedará asignado como coordinador de este programa.
+            </small>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+            <button type="button" className="btn btn-outline" onClick={() => setShowAddProgModal(false)}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={progSaving}>
+              {progSaving ? 'Guardando...' : 'Crear Programa'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal Crear Actividad */}
       <Modal

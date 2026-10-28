@@ -62,8 +62,8 @@ class UserDetailOut(UserOut):
 
 # --- PROGRAMAS Y CONVOCATORIAS ---
 class ProgramCreate(BaseModel):
-    codigo: str
-    nombre: str
+    codigo: str = Field(min_length=2, max_length=50)
+    nombre: str = Field(min_length=3, max_length=250)
     descripcion: Optional[str] = None
 
 class ProgramOut(BaseModel):
