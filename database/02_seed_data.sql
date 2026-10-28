@@ -1,6 +1,8 @@
 -- ============================================================================
 -- APP - Maestría: Sistema de Gestión de Cursos Preparatorios (UIDE)
 -- Script DML: Datos de Demostración y Configuración Inicial (Autónomo por Lote)
+-- Las fechas se calculan a partir del día en que se ejecuta el script (GETDATE()),
+-- para que la demostración se vea vigente sin importar cuándo se cargue la base.
 -- ============================================================================
 
 USE app_maestria;
@@ -136,8 +138,8 @@ BEGIN
     BEGIN
         INSERT INTO convocatorias (programa_id, codigo, nombre, fecha_apertura, fecha_cierre, fecha_inicio_preparatorio, fecha_fin_preparatorio, estado)
         VALUES 
-        (@IdProgIA2, 'CONV-2026-1', 'Convocatoria IA Cohorte I - 2026', '2026-09-01', '2026-11-30', '2026-10-01', '2026-12-15', 'EN_CURSO'),
-        (@IdProgCiber2, 'CONV-2026-CIBER', 'Convocatoria Ciberseguridad Cohorte I - 2026', '2026-09-15', '2026-12-05', '2026-10-15', '2026-12-20', 'EN_CURSO');
+        (@IdProgIA2, 'CONV-2026-1', 'Convocatoria IA Cohorte I - 2026', CAST(DATEADD(DAY, -60, GETDATE()) AS DATE), CAST(DATEADD(DAY, 30, GETDATE()) AS DATE), CAST(DATEADD(DAY, -30, GETDATE()) AS DATE), CAST(DATEADD(DAY, 50, GETDATE()) AS DATE), 'EN_CURSO'),
+        (@IdProgCiber2, 'CONV-2026-CIBER', 'Convocatoria Ciberseguridad Cohorte I - 2026', CAST(DATEADD(DAY, -45, GETDATE()) AS DATE), CAST(DATEADD(DAY, 40, GETDATE()) AS DATE), CAST(DATEADD(DAY, -15, GETDATE()) AS DATE), CAST(DATEADD(DAY, 55, GETDATE()) AS DATE), 'EN_CURSO');
     END
 END
 GO
@@ -176,10 +178,10 @@ BEGIN
     BEGIN
         INSERT INTO actividades_curso (curso_id, titulo, tipo, instrucciones, fecha_apertura, fecha_limite, ponderacion, es_obligatorio, extensiones_permitidas, tamano_max_mb, max_reenvios)
         VALUES 
-        (@IdCursoIA, N'Taller 1: Álgebra Lineal y Operaciones Matriciales', 'INDIVIDUAL', 'Resolver los ejercicios planteados en el cuaderno Jupyter y exportar informe PDF.', '2026-10-01 08:00', '2026-10-20 23:59', 25.00, 1, 'pdf,zip', 15, 3),
-        (@IdCursoIA, N'Taller 2: Programación Orientada a Objetos en Python', 'INDIVIDUAL', 'Implementar clases para carga y limpieza de datasets tabulares.', '2026-10-10 08:00', '2026-10-31 23:59', 25.00, 1, 'pdf,py,zip', 15, 3),
-        (@IdCursoIA, 'Proyecto Integrador Fase 1: Pipeline de Datos', 'PROYECTO', N'Diseñar e implementar un pipeline ETL de preparación de datos reales.', '2026-10-15 08:00', '2026-11-15 23:59', 20.00, 1, 'pdf,zip', 30, 2),
-        (@IdCursoIA, 'Proyecto Integrador Final: Modelo Predictivo Base', 'PROYECTO', N'Entrega del modelo predictivo evaluado con métricas de exactitud y reporte final.', '2026-10-25 08:00', '2026-12-10 23:59', 30.00, 1, 'pdf,zip', 40, 2);
+        (@IdCursoIA, N'Taller 1: Álgebra Lineal y Operaciones Matriciales', 'INDIVIDUAL', 'Resolver los ejercicios planteados en el cuaderno Jupyter y exportar informe PDF.', DATEADD(MINUTE, 480, CAST(CAST(DATEADD(DAY, -30, GETDATE()) AS DATE) AS DATETIME2)), DATEADD(MINUTE, 1439, CAST(CAST(DATEADD(DAY, -7, GETDATE()) AS DATE) AS DATETIME2)), 25.00, 1, 'pdf,zip', 15, 3),
+        (@IdCursoIA, N'Taller 2: Programación Orientada a Objetos en Python', 'INDIVIDUAL', 'Implementar clases para carga y limpieza de datasets tabulares.', DATEADD(MINUTE, 480, CAST(CAST(DATEADD(DAY, -20, GETDATE()) AS DATE) AS DATETIME2)), DATEADD(MINUTE, 1439, CAST(CAST(DATEADD(DAY, 8, GETDATE()) AS DATE) AS DATETIME2)), 25.00, 1, 'pdf,py,zip', 15, 3),
+        (@IdCursoIA, 'Proyecto Integrador Fase 1: Pipeline de Datos', 'PROYECTO', N'Diseñar e implementar un pipeline ETL de preparación de datos reales.', DATEADD(MINUTE, 480, CAST(CAST(DATEADD(DAY, -15, GETDATE()) AS DATE) AS DATETIME2)), DATEADD(MINUTE, 1439, CAST(CAST(DATEADD(DAY, 19, GETDATE()) AS DATE) AS DATETIME2)), 20.00, 1, 'pdf,zip', 30, 2),
+        (@IdCursoIA, 'Proyecto Integrador Final: Modelo Predictivo Base', 'PROYECTO', N'Entrega del modelo predictivo evaluado con métricas de exactitud y reporte final.', DATEADD(MINUTE, 480, CAST(CAST(DATEADD(DAY, -5, GETDATE()) AS DATE) AS DATETIME2)), DATEADD(MINUTE, 1439, CAST(CAST(DATEADD(DAY, 44, GETDATE()) AS DATE) AS DATETIME2)), 30.00, 1, 'pdf,zip', 40, 2);
     END
 END
 GO
@@ -196,10 +198,10 @@ BEGIN
     BEGIN
         INSERT INTO inscripciones (postulante_id, convocatoria_id, fecha_inscripcion, estado_proceso, nivel_riesgo, motivo_riesgo, fecha_ultimo_avance)
         VALUES 
-        (@IdPostPerez, @IdConvIA3, '2026-09-10 10:00', 'EN_CURSO', 'BAJO', N'Cumplimiento oportuno de entregas y seguimiento al día.', SYSDATETIME()),
-        (@IdPostMorales, @IdConvIA3, '2026-09-12 11:30', 'EN_CURSO', 'MEDIO', N'Taller 2 pendiente próximo a vencer (menos de 6 días) y avance inferior al esperado.', DATEADD(DAY, -4, SYSDATETIME())),
-        (@IdPostZambrano, @IdConvIA3, '2026-09-15 14:00', 'EN_CURSO', 'ALTO', N'Inactividad mayor a 7 días y 2 contactos del tutor sin respuesta.', DATEADD(DAY, -9, SYSDATETIME())),
-        (@IdPostAlvarado, @IdConvIA3, '2026-10-01 09:15', 'DOCUMENTACION_PENDIENTE', 'BAJO', N'Inscripción reciente dentro del plazo reglamentario.', SYSDATETIME());
+        (@IdPostPerez, @IdConvIA3, DATEADD(MINUTE, 600, CAST(CAST(DATEADD(DAY, -50, GETDATE()) AS DATE) AS DATETIME2)), 'EN_CURSO', 'BAJO', N'Cumplimiento oportuno de entregas y seguimiento al día.', SYSDATETIME()),
+        (@IdPostMorales, @IdConvIA3, DATEADD(MINUTE, 690, CAST(CAST(DATEADD(DAY, -48, GETDATE()) AS DATE) AS DATETIME2)), 'EN_CURSO', 'MEDIO', N'Taller 1 vencido sin entrega y avance inferior al esperado.', DATEADD(DAY, -4, SYSDATETIME())),
+        (@IdPostZambrano, @IdConvIA3, DATEADD(MINUTE, 840, CAST(CAST(DATEADD(DAY, -45, GETDATE()) AS DATE) AS DATETIME2)), 'EN_CURSO', 'ALTO', N'Inactividad mayor a 7 días y 2 contactos del tutor sin respuesta.', DATEADD(DAY, -15, SYSDATETIME())),
+        (@IdPostAlvarado, @IdConvIA3, DATEADD(MINUTE, 555, CAST(CAST(DATEADD(DAY, -10, GETDATE()) AS DATE) AS DATETIME2)), 'DOCUMENTACION_PENDIENTE', 'BAJO', N'Inscripción reciente dentro del plazo reglamentario.', SYSDATETIME());
     END
 END
 GO
@@ -256,12 +258,12 @@ BEGIN
         DECLARE @IdEntregaPerez INT = SCOPE_IDENTITY();
 
         INSERT INTO versiones_evidencia (entrega_id, numero_version, nombre_archivo_original, nombre_archivo_seguro, ruta_privada, tamano_bytes, mime_type, hash_sha256, es_tardia, fecha_entrega)
-        VALUES (@IdEntregaPerez, 1, 'Taller1_AlgebraLineal_Perez.pdf', 'sec_ev_perez_t1_v1.pdf', 'storage/private/evidencias/sec_ev_perez_t1_v1.pdf', 1048576, 'application/pdf', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 0, '2026-10-18 16:30');
+        VALUES (@IdEntregaPerez, 1, 'Taller1_AlgebraLineal_Perez.pdf', 'sec_ev_perez_t1_v1.pdf', 'storage/private/evidencias/sec_ev_perez_t1_v1.pdf', 1390, 'application/pdf', '08600710e5c0a11d2bdc1c778bf0d4e340b0c3f20556a5f29b073f5519465cfe', 0, DATEADD(MINUTE, 990, CAST(CAST(DATEADD(DAY, -9, GETDATE()) AS DATE) AS DATETIME2)));
 
         DECLARE @IdVersionPerez INT = SCOPE_IDENTITY();
 
         INSERT INTO evaluaciones_evidencia (version_id, evaluador_id, puntaje_obtenido, resultado, observaciones, recomendaciones, fecha_evaluacion)
-        VALUES (@IdVersionPerez, @IdTutorIAUser2, 24.50, 'APROBADO', N'Excelente resolución de sistemas lineales y claridad metodológica.', 'Continuar con el mismo rigor para el Taller 2.', '2026-10-19 11:00');
+        VALUES (@IdVersionPerez, @IdTutorIAUser2, 24.50, 'APROBADO', N'Excelente resolución de sistemas lineales y claridad metodológica.', 'Continuar con el mismo rigor para el Taller 2.', DATEADD(MINUTE, 660, CAST(CAST(DATEADD(DAY, -8, GETDATE()) AS DATE) AS DATETIME2)));
     END
 END
 GO
@@ -277,10 +279,10 @@ BEGIN
     BEGIN
         INSERT INTO seguimientos_postulante (inscripcion_id, tutor_id, fecha_contacto, tipo_contacto, motivo, accion_realizada, resultado, respuesta_postulante, hubo_respuesta, proxima_accion, fecha_proxima_accion, estado_caso)
         VALUES 
-        (@IdInscPerez4, @IdTutorIAUser3, '2026-10-12 15:00', 'VIDEOCONFERENCIA', N'Revisión de dudas en Álgebra Lineal', N'Se explicaron conceptos de autovectores y descomposición SVD.', N'Postulante comprendió la teoría y finalizó los ejercicios del Taller 1.', N'Agradeció la sesión y confirmó entrega anticipada.', 1, 'Revisar avance en Proyecto Fase 1', '2026-11-05 10:00', 'RESUELTO'),
-        (@IdInscMorales4, @IdTutorIAUser3, '2026-10-21 16:30', 'WHATSAPP', N'Recordatorio de Taller 2 próximo a vencer', N'Mensaje de alerta sobre fecha límite y disponibilidad para tutoría.', N'Postulante indicó tener dudas en estructuras POO.', N'Mencionó que enviará borrador el fin de semana.', 1, N'Agendar sesión de apoyo en vivo', '2026-10-28 17:00', 'EN_PROCESO'),
-        (@IdInscZambrano4, @IdTutorIAUser3, '2026-10-18 10:00', 'TELEFONO', N'Alerta de inactividad de 5 días', N'Llamada telefónica a celular registrado.', N'Teléfono sonó sin respuesta. Se envió correo de seguimiento.', 'Sin respuesta del postulante.', 0, 'Reintentar llamada en 48 horas', '2026-10-20 10:00', 'EN_PROCESO'),
-        (@IdInscZambrano4, @IdTutorIAUser3, '2026-10-21 11:30', 'CORREO', N'Segundo intento de contacto por inactividad crítica', N'Envío de correo formal de seguimiento académico con copia a coordinación.', 'Mensaje entregado al servidor de correo.', 'Sin respuesta transcurridas 72 horas.', 0, N'Escalar caso a Coordinación de Maestría', '2026-10-26 09:00', 'ESCALADO');
+        (@IdInscPerez4, @IdTutorIAUser3, DATEADD(MINUTE, 900, CAST(CAST(DATEADD(DAY, -15, GETDATE()) AS DATE) AS DATETIME2)), 'VIDEOCONFERENCIA', N'Revisión de dudas en Álgebra Lineal', N'Se explicaron conceptos de autovectores y descomposición SVD.', N'Postulante comprendió la teoría y finalizó los ejercicios del Taller 1.', N'Agradeció la sesión y confirmó entrega anticipada.', 1, 'Revisar avance en Proyecto Fase 1', DATEADD(MINUTE, 600, CAST(CAST(DATEADD(DAY, 8, GETDATE()) AS DATE) AS DATETIME2)), 'RESUELTO'),
+        (@IdInscMorales4, @IdTutorIAUser3, DATEADD(MINUTE, 990, CAST(CAST(DATEADD(DAY, -6, GETDATE()) AS DATE) AS DATETIME2)), 'WHATSAPP', N'Recordatorio de Taller 2 próximo a vencer', N'Mensaje de alerta sobre fecha límite y disponibilidad para tutoría.', N'Postulante indicó tener dudas en estructuras POO.', N'Mencionó que enviará borrador el fin de semana.', 1, N'Agendar sesión de apoyo en vivo', DATEADD(MINUTE, 1020, CAST(CAST(DATEADD(DAY, 1, GETDATE()) AS DATE) AS DATETIME2)), 'EN_PROCESO'),
+        (@IdInscZambrano4, @IdTutorIAUser3, DATEADD(MINUTE, 600, CAST(CAST(DATEADD(DAY, -10, GETDATE()) AS DATE) AS DATETIME2)), 'TELEFONO', N'Alerta de inactividad de 5 días', N'Llamada telefónica a celular registrado.', N'Teléfono sonó sin respuesta. Se envió correo de seguimiento.', 'Sin respuesta del postulante.', 0, 'Reintentar llamada en 48 horas', DATEADD(MINUTE, 600, CAST(CAST(DATEADD(DAY, -8, GETDATE()) AS DATE) AS DATETIME2)), 'EN_PROCESO'),
+        (@IdInscZambrano4, @IdTutorIAUser3, DATEADD(MINUTE, 690, CAST(CAST(DATEADD(DAY, -7, GETDATE()) AS DATE) AS DATETIME2)), 'CORREO', N'Segundo intento de contacto por inactividad crítica', N'Envío de correo formal de seguimiento académico con copia a coordinación.', 'Mensaje entregado al servidor de correo.', 'Sin respuesta transcurridas 72 horas.', 0, N'Escalar caso a Coordinación de Maestría', DATEADD(MINUTE, 540, CAST(CAST(DATEADD(DAY, -2, GETDATE()) AS DATE) AS DATETIME2)), 'ESCALADO');
     END
 END
 GO
@@ -294,9 +296,9 @@ BEGIN
     BEGIN
         INSERT INTO alertas_riesgo (inscripcion_id, tipo_alerta, nivel_riesgo, motivo_detallado, resuelta)
         VALUES 
-        (@IdInscZambrano5, 'INACTIVIDAD', 'ALTO', N'Postulante acumula más de 8 días sin registro de actividad académica significativa.', 0),
+        (@IdInscZambrano5, 'INACTIVIDAD', 'ALTO', N'Postulante acumula más de 14 días sin registro de actividad académica significativa.', 0),
         (@IdInscZambrano5, 'CONTACTO_SIN_RESPUESTA', 'ALTO', 'Dos intentos consecutivos de contacto documentados por el tutor sin respuesta del postulante.', 0),
-        (@IdInscMorales5, 'VENCIMIENTO_PROXIMO', 'MEDIO', N'Taller 2 vence en menos de 6 días sin evidencia cargada.', 0);
+        (@IdInscMorales5, 'VENCIMIENTO_PROXIMO', 'MEDIO', N'Taller 1 vencido sin evidencia cargada.', 0);
     END
 END
 GO

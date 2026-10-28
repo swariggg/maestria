@@ -51,8 +51,8 @@ Todas las cuentas de prueba están preconfiguradas con la contraseña: **`Demo20
 | **Coordinador IA** | `coordinador.ia@uide.edu.ec` | Asignado a "Maestría en IA", gestión de cursos, asignación manual de tutores y reportes. |
 | **Tutor IA** | `tutor.ia@uide.edu.ec` | Calificación de evidencias, registro de bitácora y seguimiento a postulantes asignados. |
 | **Postulante (Riesgo Bajo)** | `postulante.perez@uide.edu.ec` | Juan Pérez: Avance al día, evidencia calificada con 24.5/25 pts. |
-| **Postulante (Riesgo Medio)**| `postulante.morales@uide.edu.ec`| Ana Morales: Taller 2 próximo a vencer y avance rezagado. |
-| **Postulante (Riesgo Alto)** | `postulante.zambrano@uide.edu.ec`| David Zambrano: Inactivo más de 8 días y 2 contactos sin respuesta. |
+| **Postulante (Riesgo Medio)**| `postulante.morales@uide.edu.ec`| Ana Morales: Taller 1 vencido sin entrega y avance rezagado. |
+| **Postulante (Riesgo Alto)** | `postulante.zambrano@uide.edu.ec`| David Zambrano: Inactivo más de 14 días y 2 contactos sin respuesta. |
 
 *(La pantalla de inicio de sesión incluye botones de acceso rápido con 1 solo clic para alternar entre roles).*
 
