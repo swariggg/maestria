@@ -9,6 +9,7 @@ from app.models.entities import (
     CoordinadorPrograma, AsignacionCurso, ActividadCurso, EntregaEvidencia
 )
 from app.schemas.pydantic_models import ApplicantListItem
+from app.services.progress_service import calcular_avance
 
 router = APIRouter(prefix="/postulantes", tags=["Postulantes e Inscripciones"])
 
@@ -68,17 +69,8 @@ def list_applicants(
         ).first()
         tutor_nombre = tutor_asig.tutor.nombre_completo if tutor_asig else None
 
-        # Calcular avance real
-        asig_c = db.query(AsignacionCurso).filter(AsignacionCurso.inscripcion_id == insc.id).first()
-        pct_avance = 0.0
-        if asig_c:
-            total_acts = db.query(ActividadCurso).filter(ActividadCurso.curso_id == asig_c.curso_id).count()
-            if total_acts > 0:
-                aprobadas = db.query(EntregaEvidencia).filter(
-                    EntregaEvidencia.asignacion_curso_id == asig_c.id,
-                    EntregaEvidencia.estado_entrega == 'APROBADO'
-                ).count()
-                pct_avance = round((aprobadas / total_acts) * 100.0, 1)
+        # Avance sumando todos los cursos asignados
+        pct_avance = calcular_avance(db, insc)["porcentaje"]
 
         resultados.append(ApplicantListItem(
             id=insc.id,

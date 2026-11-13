@@ -13,11 +13,12 @@ import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 
 export default function EvidencesPage({ user }) {
-  const [courses, setCourses] = useState([]);
   const [activities, setActivities] = useState([]);
   const [selectedAct, setSelectedAct] = useState(null);
   const [applicants, setApplicants] = useState([]);
   const [selectedInscId, setSelectedInscId] = useState(null);
+  const [avance, setAvance] = useState(null);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
   const [evidenceData, setEvidenceData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,31 +38,17 @@ export default function EvidencesPage({ user }) {
   const [evalError, setEvalError] = useState(null);
 
   const role = user?.rol?.codigo;
+  const cursos = avance?.cursos || [];
+  const inscripcionCerrada = ['APROBADO', 'NO_APROBADO', 'RETIRADO'].includes(avance?.estado_proceso);
 
+  // 1. Postulantes visibles según el rol (el postulante solo se ve a sí mismo)
   const loadInitial = async () => {
     try {
       setLoading(true);
-      const crsList = await api.getCourses();
-      setCourses(crsList);
-
-      if (crsList.length > 0) {
-        const actList = await api.getActivities(crsList[0].id);
-        setActivities(actList);
-        if (actList.length > 0) setSelectedAct(actList[0]);
-      }
-
-      if (['ADMIN', 'COORDINADOR', 'TUTOR'].includes(role)) {
-        const appList = await api.getApplicants();
-        setApplicants(appList);
-        if (appList.length > 0) {
-          setSelectedInscId(appList[0].id);
-        }
-      } else {
-        // Postulante
-        const appList = await api.getApplicants();
-        if (appList.length > 0) {
-          setSelectedInscId(appList[0].id);
-        }
+      const appList = await api.getApplicants();
+      setApplicants(appList);
+      if (appList.length > 0) {
+        setSelectedInscId(appList[0].id);
       }
     } catch (err) {
       console.error(err);
@@ -73,6 +60,46 @@ export default function EvidencesPage({ user }) {
   useEffect(() => {
     loadInitial();
   }, []);
+
+  // 2. Cursos asignados a la inscripción seleccionada
+  const loadAvance = async (inscId, keepCourse = false) => {
+    try {
+      const data = await api.getEnrollmentProgress(inscId);
+      setAvance(data);
+      if (!keepCourse) {
+        setSelectedCourseId(data.cursos.length > 0 ? data.cursos[0].curso_id : null);
+      }
+    } catch (err) {
+      console.error(err);
+      setAvance(null);
+      setSelectedCourseId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedInscId) loadAvance(selectedInscId);
+  }, [selectedInscId]);
+
+  // 3. Actividades del curso seleccionado
+  useEffect(() => {
+    const loadActivities = async () => {
+      if (!selectedCourseId) {
+        setActivities([]);
+        setSelectedAct(null);
+        setEvidenceData(null);
+        return;
+      }
+      try {
+        const actList = await api.getActivities(selectedCourseId);
+        setActivities(actList);
+        setSelectedAct(actList.length > 0 ? actList[0] : null);
+        if (actList.length === 0) setEvidenceData(null);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadActivities();
+  }, [selectedCourseId]);
 
   const loadEvidence = async (actId, inscId) => {
     if (!actId || !inscId) return;
@@ -108,6 +135,7 @@ export default function EvidencesPage({ user }) {
       setShowUploadModal(false);
       setUploadFile(null);
       await loadEvidence(selectedAct.id, selectedInscId);
+      await loadAvance(selectedInscId, true);
       alert('Evidencia cargada exitosamente al repositorio privado.');
     } catch (err) {
       setUploadError(err.message);
@@ -157,6 +185,7 @@ export default function EvidencesPage({ user }) {
 
       setShowEvalModal(false);
       await loadEvidence(selectedAct.id, selectedInscId);
+      await loadAvance(selectedInscId, true);
       alert('Calificación y retroalimentación guardadas con éxito.');
     } catch (err) {
       setEvalError(err.message);
@@ -193,6 +222,23 @@ export default function EvidencesPage({ user }) {
           )}
 
           <div>
+            <label className="form-label">Curso Preparatorio</label>
+            <select
+              className="form-select"
+              value={selectedCourseId || ''}
+              onChange={(e) => setSelectedCourseId(parseInt(e.target.value))}
+              disabled={cursos.length === 0}
+            >
+              {cursos.length === 0 && <option value="">Sin cursos asignados</option>}
+              {cursos.map((c) => (
+                <option key={c.curso_id} value={c.curso_id}>
+                  {c.codigo} · {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label className="form-label">Actividad o Proyecto</label>
             <select
               className="form-select"
@@ -202,6 +248,7 @@ export default function EvidencesPage({ user }) {
                 setSelectedAct(act);
               }}
             >
+              {activities.length === 0 && <option value="">Sin actividades</option>}
               {activities.map((act) => (
                 <option key={act.id} value={act.id}>
                   {act.titulo} ({act.ponderacion}%)
@@ -211,6 +258,34 @@ export default function EvidencesPage({ user }) {
           </div>
         </div>
       </div>
+
+      {/* Avance del postulante en todos sus cursos */}
+      {avance && (
+        <div className="card" style={{ marginBottom: '24px', padding: '18px 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: cursos.length > 0 ? '14px' : 0 }}>
+            <div>
+              <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>AVANCE GENERAL</small>
+              <h3 style={{ marginTop: '2px' }}>
+                {avance.porcentaje}% · {avance.actividades_aprobadas} de {avance.total_actividades} actividades aprobadas
+              </h3>
+            </div>
+            <Badge type={avance.estado_proceso} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+            {cursos.map((c) => (
+              <div key={c.curso_id} style={{ padding: '10px 14px', borderRadius: '14px', background: 'var(--surface-muted)', border: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.875rem' }}>{c.codigo}</strong>
+                  <Badge type={c.estado_aprobacion} />
+                </div>
+                <small style={{ color: 'var(--text-sec)' }}>
+                  Nota {c.nota_final ?? 0} / mínima {c.nota_minima} · {c.actividades_aprobadas}/{c.total_actividades} aprobadas
+                </small>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Panel Principal de Evidencia */}
       <div className="card">
@@ -225,7 +300,7 @@ export default function EvidencesPage({ user }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Badge type={evidenceData?.estado_entrega || 'PENDIENTE'} />
             
-            {role === 'POSTULANTE' && (
+            {role === 'POSTULANTE' && selectedAct && !inscripcionCerrada && evidenceData?.estado_entrega !== 'APROBADO' && (
               <button
                 className="btn btn-primary"
                 onClick={() => { setUploadError(null); setShowUploadModal(true); }}
@@ -277,7 +352,7 @@ export default function EvidencesPage({ user }) {
                       <span>Descargar Privado</span>
                     </button>
 
-                    {['ADMIN', 'COORDINADOR', 'TUTOR'].includes(role) && (
+                    {['ADMIN', 'COORDINADOR', 'TUTOR'].includes(role) && !inscripcionCerrada && (
                       <button
                         className="btn btn-secondary"
                         style={{ padding: '8px 12px', fontSize: '0.825rem' }}

@@ -208,7 +208,7 @@ export default function ApplicantsPage({ user }) {
               <option value="DOCUMENTACION_PENDIENTE">Doc. Pendiente</option>
               <option value="EN_CURSO">En Curso</option>
               <option value="APROBADO">Aprobado</option>
-              <option value="REPROBADO">Reprobado</option>
+              <option value="NO_APROBADO">No aprobado</option>
             </select>
           </div>
 

@@ -3,12 +3,13 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.security import get_current_user, require_roles
+from app.core.security import get_current_user, require_roles, verify_applicant_access
 from app.models.entities import (
     Usuario, Convocatoria, CursoPreparatorio, Inscripcion, AsignacionCurso, RegistroAuditoria
 )
 from app.schemas.pydantic_models import EnrollmentCreate, OpenCallOut, MyEnrollmentOut
 from app.services.notification_service import send_or_queue_notification
+from app.services.progress_service import calcular_avance, ESTADOS_INSCRIPCION_CERRADA
 
 router = APIRouter(prefix="/inscripciones", tags=["Postulantes e Inscripciones"])
 
@@ -25,7 +26,7 @@ def _cursos_activos(db: Session, convocatoria_id: int) -> List[CursoPreparatorio
 def _inscripcion_vigente(db: Session, postulante_id: int):
     return db.query(Inscripcion).filter(
         Inscripcion.postulante_id == postulante_id,
-        Inscripcion.estado_proceso != "RETIRADO"
+        Inscripcion.estado_proceso.notin_(ESTADOS_INSCRIPCION_CERRADA)
     ).first()
 
 
@@ -80,6 +81,21 @@ def list_my_enrollments(
         )
         for insc in inscripciones
     ]
+
+
+@router.get("/{inscripcion_id}/avance")
+def get_enrollment_progress(
+    inscripcion_id: int,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cursos asignados a la inscripción y avance sumando todos ellos."""
+    inscripcion = db.query(Inscripcion).filter(Inscripcion.id == inscripcion_id).first()
+    if not inscripcion:
+        raise HTTPException(status_code=404, detail="Inscripción no encontrada.")
+    if not verify_applicant_access(current_user, inscripcion.postulante_id, db):
+        raise HTTPException(status_code=403, detail="No tiene autorización para consultar este postulante.")
+    return calcular_avance(db, inscripcion)
 
 
 @router.post("", response_model=MyEnrollmentOut)

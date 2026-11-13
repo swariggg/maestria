@@ -13,7 +13,7 @@ export default function Badge({ type, text }) {
   } else if (['MEDIO', 'EN_PROCESO', 'REQUIERE_CORRECCION', 'DOCUMENTACION_PENDIENTE'].includes(upper)) {
     badgeClass = 'badge-warning';
     Icon = AlertTriangle;
-  } else if (['ALTO', 'RECHAZADO', 'REPROBADO', 'ESCALADO', 'BLOQUEADO', 'FALLIDO'].includes(upper)) {
+  } else if (['ALTO', 'RECHAZADO', 'REPROBADO', 'NO_APROBADO', 'ESCALADO', 'BLOQUEADO', 'FALLIDO'].includes(upper)) {
     badgeClass = 'badge-danger';
     Icon = AlertCircle;
   } else if (['PENDIENTE', 'REGISTRADO', 'EN_CURSO', 'PLANIFICADA', 'ENTREGADO'].includes(upper)) {

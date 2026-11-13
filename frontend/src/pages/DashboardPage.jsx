@@ -162,6 +162,61 @@ export default function DashboardPage({ user, onNavigate }) {
         </div>
       </div>
 
+      {role !== 'POSTULANTE' && (
+        <div className="grid-cols-4" style={{ marginBottom: '28px' }}>
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>POSTULANTES APROBADOS</small>
+                <h2 style={{ fontSize: '2rem', marginTop: '4px', color: 'var(--status-success-text)' }}>
+                  {stats?.postulantes_aprobados || 0}
+                </h2>
+              </div>
+              <div className="kpi-icon duo">
+                <CheckCircle2 size={22} color="var(--status-success-text)" />
+              </div>
+            </div>
+            <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>
+              Aprobaron todos sus cursos preparatorios
+            </small>
+          </div>
+
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>CUMPLIMIENTO PROMEDIO</small>
+                <h2 style={{ fontSize: '2rem', marginTop: '4px' }}>
+                  {stats?.porcentaje_cumplimiento_promedio || 0}%
+                </h2>
+              </div>
+              <div className="kpi-icon duo">
+                <FileCheck2 size={22} />
+              </div>
+            </div>
+            <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>
+              Actividades aprobadas sobre el total de sus cursos
+            </small>
+          </div>
+
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>CURSOS ACTIVOS</small>
+                <h2 style={{ fontSize: '2rem', marginTop: '4px' }}>
+                  {stats?.cursos_activos || 0}
+                </h2>
+              </div>
+              <div className="kpi-icon duo">
+                <BookOpen size={22} />
+              </div>
+            </div>
+            <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>
+              Cursos preparatorios en marcha
+            </small>
+          </div>
+        </div>
+      )}
+
       {/* Casos Críticos o Próximos Vencimientos */}
       {role === 'POSTULANTE' ? (
         <div className="card">
@@ -187,7 +242,10 @@ export default function DashboardPage({ user, onNavigate }) {
                 <tbody>
                   {stats.proximos_vencimientos.map((act) => (
                     <tr key={act.actividad_id}>
-                      <td style={{ fontWeight: 600 }}>{act.titulo}</td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{act.titulo}</div>
+                        {act.curso && <small style={{ color: 'var(--text-sec)' }}>{act.curso}</small>}
+                      </td>
                       <td><Badge type={act.tipo} /></td>
                       <td>{act.ponderacion}%</td>
                       <td>{act.fecha_limite}</td>

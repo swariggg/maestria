@@ -10,6 +10,8 @@ from app.schemas.pydantic_models import (
     ConvocatoriaUpdate, ConvocatoriaEstadoUpdate
 )
 
+from app.services.progress_service import cerrar_convocatoria
+
 router = APIRouter(prefix="/programas", tags=["Programas y Convocatorias"])
 
 # Ciclo de vida de una convocatoria: solo se avanza al estado siguiente
@@ -199,13 +201,16 @@ def change_convocatoria_estado(
 
     anterior = conv.estado
     conv.estado = nuevo_estado
+
+    # Al finalizar, quien no aprobó todos sus cursos queda NO_APROBADO
+    resumen_cierre = cerrar_convocatoria(db, conv, current_user.id) if nuevo_estado == "FINALIZADA" else None
     db.add(RegistroAuditoria(
         usuario_id=current_user.id,
         accion="CAMBIAR_ESTADO_CONVOCATORIA",
         entidad="CONVOCATORIA",
         entidad_id=str(conv.id),
         datos_anteriores_json=json.dumps({"estado": anterior}),
-        datos_nuevos_json=json.dumps({"estado": nuevo_estado})
+        datos_nuevos_json=json.dumps({"estado": nuevo_estado, "cierre": resumen_cierre})
     ))
     db.commit()
     db.refresh(conv)

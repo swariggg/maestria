@@ -8,6 +8,7 @@ from app.models.entities import (
     AsignacionCurso, ActividadCurso, RegistroAuditoria
 )
 from app.schemas.pydantic_models import EvaluationCreate, EvaluationOut
+from app.services.progress_service import actualizar_estado_inscripcion, inscripcion_cerrada
 
 router = APIRouter(prefix="/evaluaciones", tags=["Evaluaciones y Calificaciones"])
 
@@ -28,6 +29,9 @@ def evaluate_evidence_version(
     # Validar permisos
     if not verify_applicant_access(current_user, inscripcion.postulante_id, db):
         raise HTTPException(status_code=403, detail="No tiene autorización para evaluar a este postulante.")
+
+    if inscripcion_cerrada(inscripcion):
+        raise HTTPException(status_code=400, detail=f"La inscripción está cerrada ({inscripcion.estado_proceso}); ya no admite calificaciones.")
 
     actividad = entrega.actividad
     if data.puntaje_obtenido < 0 or data.puntaje_obtenido > float(actividad.ponderacion):
@@ -61,30 +65,9 @@ def evaluate_evidence_version(
     entrega.estado_entrega = data.resultado
     entrega.actualizada_en = datetime.now()
 
-    # Recalcular nota acumulada del curso
-    todas_entregas = db.query(EntregaEvidencia).filter(EntregaEvidencia.asignacion_curso_id == asig_curso.id).all()
-    nota_acumulada = 0.0
-    todas_aprobadas = True
-
-    actividades_obligatorias = db.query(ActividadCurso).filter(
-        ActividadCurso.curso_id == asig_curso.curso_id,
-        ActividadCurso.es_obligatorio == True
-    ).all()
-
-    for ent in todas_entregas:
-        if ent.versiones:
-            ult_v = ent.versiones[-1]
-            if ult_v.evaluacion:
-                nota_acumulada += float(ult_v.evaluacion.puntaje_obtenido)
-
-    asig_curso.nota_final = nota_acumulada
-    
-    # Verificar si cumple nota mínima del curso
-    curso = asig_curso.curso
-    if nota_acumulada >= float(curso.nota_minima):
-        asig_curso.estado_aprobacion = "APROBADO"
-    else:
-        asig_curso.estado_aprobacion = "PENDIENTE"
+    # Recalcular nota y aprobación del curso, y con ello el estado de la inscripción
+    db.flush()
+    actualizar_estado_inscripcion(db, inscripcion, current_user.id)
 
     db.commit()
     db.refresh(evaluacion)

@@ -14,6 +14,7 @@ from app.models.entities import (
     VersionEvidencia, Inscripcion, RegistroAuditoria
 )
 from app.schemas.pydantic_models import EvidenceOut
+from app.services.progress_service import asignacion_para_actividad, inscripcion_cerrada
 
 router = APIRouter(prefix="/evidencias", tags=["Evidencias y Archivos"])
 
@@ -31,9 +32,14 @@ def get_applicant_evidence(
     if not verify_applicant_access(current_user, inscripcion.postulante_id, db):
         raise HTTPException(status_code=403, detail="No tiene autorización para consultar esta evidencia.")
 
-    asig_curso = db.query(AsignacionCurso).filter(AsignacionCurso.inscripcion_id == inscripcion.id).first()
+    actividad = db.query(ActividadCurso).filter(ActividadCurso.id == actividad_id).first()
+    if not actividad:
+        raise HTTPException(status_code=404, detail="Actividad no encontrada.")
+
+    # La entrega se busca en el curso al que pertenece la actividad
+    asig_curso = asignacion_para_actividad(db, inscripcion, actividad)
     if not asig_curso:
-        raise HTTPException(status_code=404, detail="Postulante no tiene curso asignado.")
+        raise HTTPException(status_code=404, detail="La actividad no pertenece a los cursos asignados al postulante.")
 
     entrega = db.query(EntregaEvidencia).filter(
         EntregaEvidencia.asignacion_curso_id == asig_curso.id,
@@ -91,9 +97,30 @@ async def upload_evidence(
     if current_user.rol.codigo != "ADMIN" and current_user.id != inscripcion.postulante_id:
         raise HTTPException(status_code=403, detail="Solo el postulante autorizado puede cargar sus evidencias.")
 
+    if inscripcion_cerrada(inscripcion):
+        raise HTTPException(status_code=400, detail=f"La inscripción está cerrada ({inscripcion.estado_proceso}); ya no admite nuevas evidencias.")
+
     actividad = db.query(ActividadCurso).filter(ActividadCurso.id == actividad_id).first()
-    if not actividad:
+    if not actividad or actividad.estado != "ACTIVO":
         raise HTTPException(status_code=404, detail="Actividad no encontrada.")
+
+    # La evidencia se liga al curso de la actividad, no al primer curso del postulante
+    asig_curso = asignacion_para_actividad(db, inscripcion, actividad)
+    if not asig_curso:
+        raise HTTPException(status_code=400, detail="La actividad no pertenece a los cursos asignados al postulante.")
+
+    entrega = db.query(EntregaEvidencia).filter(
+        EntregaEvidencia.asignacion_curso_id == asig_curso.id,
+        EntregaEvidencia.actividad_id == actividad.id
+    ).first()
+
+    if entrega and entrega.estado_entrega == "APROBADO":
+        raise HTTPException(status_code=400, detail="Esta evidencia ya fue aprobada y no se puede reemplazar.")
+    if entrega and entrega.numero_versiones >= actividad.max_reenvios:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Se ha alcanzado el límite de {actividad.max_reenvios} reenvíos para esta actividad."
+        )
 
     # Validar extensión
     ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
@@ -117,21 +144,11 @@ async def upload_evidence(
     # Calcular Hash SHA-256
     sha256_hash = hashlib.sha256(content).hexdigest()
 
-    # Guardar en almacenamiento privado seguro
+    # Guardar en almacenamiento privado seguro (solo después de pasar todas las validaciones)
     secure_filename = f"ev_{uuid.uuid4().hex[:12]}_{sha256_hash[:8]}.{ext}"
     private_path = os.path.join(settings.STORAGE_DIR, "evidencias", secure_filename)
     with open(private_path, "wb") as f:
         f.write(content)
-
-    # Buscar o crear EntregaEvidencia
-    asig_curso = db.query(AsignacionCurso).filter(AsignacionCurso.inscripcion_id == inscripcion.id).first()
-    if not asig_curso:
-        raise HTTPException(status_code=400, detail="El postulante no tiene asignado el curso de esta actividad.")
-
-    entrega = db.query(EntregaEvidencia).filter(
-        EntregaEvidencia.asignacion_curso_id == asig_curso.id,
-        EntregaEvidencia.actividad_id == actividad.id
-    ).first()
 
     ahora = datetime.now()
     es_tardia = ahora > actividad.fecha_limite
@@ -148,11 +165,6 @@ async def upload_evidence(
         db.refresh(entrega)
         nueva_version_num = 1
     else:
-        if entrega.numero_versiones >= actividad.max_reenvios:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Se ha alcanzado el límite de {actividad.max_reenvios} reenvíos para esta actividad."
-            )
         entrega.numero_versiones += 1
         entrega.estado_entrega = "ENTREGADO"
         entrega.actualizada_en = ahora

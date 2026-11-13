@@ -44,7 +44,7 @@ export default function EnrollmentPage() {
     }
   };
 
-  const tieneInscripcionVigente = misInscripciones.some((i) => i.estado_proceso !== 'RETIRADO');
+  const tieneInscripcionVigente = misInscripciones.some((i) => !['RETIRADO', 'APROBADO', 'NO_APROBADO'].includes(i.estado_proceso));
 
   if (loading) {
     return <div style={{ textAlign: 'center', padding: '60px' }}>Cargando convocatorias...</div>;

@@ -89,6 +89,7 @@ export const api = {
   getOpenCalls: () => apiRequest('/inscripciones/convocatorias-abiertas'),
   getMyEnrollments: () => apiRequest('/inscripciones/mias'),
   enroll: (data) => apiRequest('/inscripciones', { method: 'POST', body: JSON.stringify(data) }),
+  getEnrollmentProgress: (inscripcionId) => apiRequest(`/inscripciones/${inscripcionId}/avance`),
 
   // Evidencias
   getEvidence: (actividadId, inscripcionId) => apiRequest(`/evidencias/actividad/${actividadId}/entrega?inscripcion_id=${inscripcionId}`),

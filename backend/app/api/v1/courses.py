@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user, require_roles, verify_program_access
 from app.models.entities import CursoPreparatorio, ActividadCurso, Convocatoria, Usuario, RegistroAuditoria
 from app.schemas.pydantic_models import CourseOut, CourseCreate, ActivityOut, ActivityCreate
+from app.services.progress_service import asignar_curso_a_inscritos
 
 router = APIRouter(prefix="/cursos", tags=["Cursos y Actividades"])
 
@@ -38,16 +39,20 @@ def create_course(
         estado="ACTIVO"
     )
     db.add(curso)
-    db.commit()
-    db.refresh(curso)
+    db.flush()
+
+    # Los postulantes ya inscritos en la convocatoria también reciben el curso nuevo
+    asignados = asignar_curso_a_inscritos(db, curso)
 
     db.add(RegistroAuditoria(
         usuario_id=current_user.id,
         accion="CREAR_CURSO",
         entidad="CURSO_PREPARATORIO",
-        entidad_id=str(curso.id)
+        entidad_id=str(curso.id),
+        datos_nuevos_json=f'{{"convocatoria_id": {curso.convocatoria_id}, "asignado_a_inscritos": {asignados}}}'
     ))
     db.commit()
+    db.refresh(curso)
     return curso
 
 @router.get("/{curso_id}/actividades", response_model=List[ActivityOut])

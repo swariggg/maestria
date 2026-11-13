@@ -13,6 +13,7 @@ from app.models.entities import (
     ActividadCurso, AsignacionCurso, EntregaEvidencia, EvaluacionEvidencia,
     SeguimientoPostulante, AsignacionTutor
 )
+from app.services.progress_service import calcular_avance, asignaciones_del_postulante
 
 def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.BytesIO:
     inscripcion = db.query(Inscripcion).filter(Inscripcion.id == inscripcion_id).first()
@@ -83,6 +84,7 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
         AsignacionTutor.estado == 'ACTIVO'
     ).first()
     tutor_nombre = tutor_asig.tutor.nombre_completo if tutor_asig else "No asignado"
+    avance = calcular_avance(db, inscripcion)
 
     info_data = [
         [Paragraph("<b>Postulante:</b>", body_style), Paragraph(postulante.nombre_completo, body_style),
@@ -95,6 +97,8 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
          Paragraph("<b>Fecha Inscripción:</b>", body_style), Paragraph(inscripcion.fecha_inscripcion.strftime("%Y-%m-%d"), body_style)],
         [Paragraph("<b>Estado Proceso:</b>", body_style), Paragraph(f"<b>{inscripcion.estado_proceso}</b>", body_style),
          Paragraph("<b>Nivel de Riesgo:</b>", body_style), Paragraph(f"<b>{inscripcion.nivel_riesgo}</b>", body_style)],
+        [Paragraph("<b>Nivel de Cumplimiento:</b>", body_style), Paragraph(f"{avance['porcentaje']}% ({avance['actividades_aprobadas']} de {avance['total_actividades']} actividades aprobadas)", body_style),
+         Paragraph("<b>Cursos Asignados:</b>", body_style), Paragraph(str(len(avance['cursos'])), body_style)],
     ]
 
     info_table = Table(info_data, colWidths=[100, 180, 120, 130])
@@ -109,7 +113,7 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
     story.append(Spacer(1, 15))
 
     # Cursos y Evaluaciones de Actividades
-    story.append(Paragraph("1. Actividades y Evaluaciones del Curso Preparatorio", section_title))
+    story.append(Paragraph("1. Actividades y Evaluaciones de los Cursos Preparatorios", section_title))
     
     act_headers = [
         Paragraph("<b>Actividad / Proyecto</b>", body_style),
@@ -120,9 +124,11 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
     ]
     act_rows = [act_headers]
 
-    asig_curso = db.query(AsignacionCurso).filter(AsignacionCurso.inscripcion_id == inscripcion.id).first()
-    if asig_curso:
-        actividades = db.query(ActividadCurso).filter(ActividadCurso.curso_id == asig_curso.curso_id).all()
+    for asig_curso in asignaciones_del_postulante(db, inscripcion):
+        actividades = db.query(ActividadCurso).filter(
+            ActividadCurso.curso_id == asig_curso.curso_id,
+            ActividadCurso.estado == 'ACTIVO'
+        ).all()
         for act in actividades:
             entrega = db.query(EntregaEvidencia).filter(
                 EntregaEvidencia.asignacion_curso_id == asig_curso.id,
@@ -140,7 +146,7 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
                     res_str = ultima_version.evaluacion.resultado
 
             act_rows.append([
-                Paragraph(act.titulo, body_style),
+                Paragraph(f"{asig_curso.curso.codigo}: {act.titulo}", body_style),
                 Paragraph(f"{act.ponderacion}%", body_style),
                 Paragraph(estado_ent, body_style),
                 Paragraph(calif_str, body_style),
@@ -268,17 +274,8 @@ def generate_consolidated_excel_report(db: Session, programa_id: int = None, con
         # Seguimientos
         num_seg = db.query(SeguimientoPostulante).filter(SeguimientoPostulante.inscripcion_id == insc.id).count()
 
-        # Avance
-        asig_c = db.query(AsignacionCurso).filter(AsignacionCurso.inscripcion_id == insc.id).first()
-        pct_avance = 0.0
-        if asig_c:
-            total_acts = db.query(ActividadCurso).filter(ActividadCurso.curso_id == asig_c.curso_id).count()
-            if total_acts > 0:
-                aprobadas = db.query(EntregaEvidencia).filter(
-                    EntregaEvidencia.asignacion_curso_id == asig_c.id,
-                    EntregaEvidencia.estado_entrega == 'APROBADO'
-                ).count()
-                pct_avance = round((aprobadas / total_acts) * 100.0, 1)
+        # Avance sumando todos los cursos asignados
+        pct_avance = calcular_avance(db, insc)["porcentaje"]
 
         row_data = [
             post.nombre_completo,

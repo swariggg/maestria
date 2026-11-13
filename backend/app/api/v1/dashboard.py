@@ -9,6 +9,12 @@ from app.models.entities import (
     SeguimientoPostulante, CoordinadorPrograma, Convocatoria
 )
 from app.schemas.pydantic_models import DashboardStats
+from app.services.progress_service import calcular_avance, asignaciones_del_postulante
+
+
+def _cumplimiento_promedio(db: Session, inscripciones) -> float:
+    avances = [calcular_avance(db, i)["porcentaje"] for i in inscripciones if i.estado_proceso != "RETIRADO"]
+    return round(sum(avances) / len(avances), 1) if avances else 0.0
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard e Indicadores"])
 
@@ -28,6 +34,7 @@ def get_dashboard_stats(current_user: Usuario = Depends(get_current_user), db: S
         stats.seguimientos_totales = db.query(SeguimientoPostulante).count()
         stats.seguimientos_sin_respuesta = db.query(SeguimientoPostulante).filter(SeguimientoPostulante.hubo_respuesta == False).count()
         stats.actividades_pendientes = db.query(EntregaEvidencia).filter(EntregaEvidencia.estado_entrega.in_(['PENDIENTE', 'REQUIERE_CORRECCION'])).count()
+        stats.porcentaje_cumplimiento_promedio = _cumplimiento_promedio(db, db.query(Inscripcion).all())
 
         # Casos críticos (Riesgo Alto)
         casos_alto = db.query(Inscripcion).filter(Inscripcion.nivel_riesgo == 'ALTO').limit(5).all()
@@ -58,6 +65,7 @@ def get_dashboard_stats(current_user: Usuario = Depends(get_current_user), db: S
         stats.postulantes_riesgo_bajo = insc_query.filter(Inscripcion.nivel_riesgo == 'BAJO').count()
 
         insc_ids = [i.id for i in insc_query.all()]
+        stats.porcentaje_cumplimiento_promedio = _cumplimiento_promedio(db, insc_query.all())
         stats.seguimientos_totales = db.query(SeguimientoPostulante).filter(SeguimientoPostulante.inscripcion_id.in_(insc_ids)).count()
         stats.seguimientos_sin_respuesta = db.query(SeguimientoPostulante).filter(
             SeguimientoPostulante.inscripcion_id.in_(insc_ids),
@@ -81,8 +89,11 @@ def get_dashboard_stats(current_user: Usuario = Depends(get_current_user), db: S
         ).all()
         insc_ids = [a.inscripcion_id for a in asigs]
 
+        inscripciones_tutor = db.query(Inscripcion).filter(Inscripcion.id.in_(insc_ids)).all()
         stats.total_postulantes = len(insc_ids)
-        stats.cursos_activos = 1
+        stats.cursos_activos = db.query(AsignacionCurso.curso_id).filter(AsignacionCurso.inscripcion_id.in_(insc_ids)).distinct().count()
+        stats.postulantes_aprobados = sum(1 for i in inscripciones_tutor if i.estado_proceso == 'APROBADO')
+        stats.porcentaje_cumplimiento_promedio = _cumplimiento_promedio(db, inscripciones_tutor)
         stats.postulantes_riesgo_alto = db.query(Inscripcion).filter(Inscripcion.id.in_(insc_ids), Inscripcion.nivel_riesgo == 'ALTO').count()
         stats.postulantes_riesgo_medio = db.query(Inscripcion).filter(Inscripcion.id.in_(insc_ids), Inscripcion.nivel_riesgo == 'MEDIO').count()
         stats.postulantes_riesgo_bajo = db.query(Inscripcion).filter(Inscripcion.id.in_(insc_ids), Inscripcion.nivel_riesgo == 'BAJO').count()
@@ -111,35 +122,37 @@ def get_dashboard_stats(current_user: Usuario = Depends(get_current_user), db: S
         ]
 
     elif rol == "POSTULANTE":
-        inscripcion = db.query(Inscripcion).filter(Inscripcion.postulante_id == current_user.id).first()
+        # La inscripción más reciente que no esté retirada
+        inscripcion = db.query(Inscripcion).filter(
+            Inscripcion.postulante_id == current_user.id,
+            Inscripcion.estado_proceso != "RETIRADO"
+        ).order_by(Inscripcion.fecha_inscripcion.desc()).first()
         if inscripcion:
+            avance = calcular_avance(db, inscripcion)
             stats.total_postulantes = 1
-            stats.cursos_activos = 1
-            asig_c = db.query(AsignacionCurso).filter(AsignacionCurso.inscripcion_id == inscripcion.id).first()
-            if asig_c:
-                actividades = db.query(ActividadCurso).filter(ActividadCurso.curso_id == asig_c.curso_id).all()
-                total_acts = len(actividades)
-                aprobadas = db.query(EntregaEvidencia).filter(
-                    EntregaEvidencia.asignacion_curso_id == asig_c.id,
-                    EntregaEvidencia.estado_entrega == 'APROBADO'
-                ).count()
-                
-                stats.actividades_pendientes = max(0, total_acts - aprobadas)
-                stats.porcentaje_cumplimiento_promedio = round((aprobadas / total_acts * 100.0), 1) if total_acts > 0 else 0.0
+            stats.cursos_activos = len(avance["cursos"])
+            stats.actividades_pendientes = avance["actividades_pendientes"]
+            stats.porcentaje_cumplimiento_promedio = avance["porcentaje"]
 
-                # Próximos vencimientos
-                proximos = []
+            # Próximos vencimientos de todos sus cursos
+            proximos = []
+            for asig in asignaciones_del_postulante(db, inscripcion):
+                actividades = db.query(ActividadCurso).filter(
+                    ActividadCurso.curso_id == asig.curso_id,
+                    ActividadCurso.estado == 'ACTIVO'
+                ).all()
                 for act in actividades:
                     dias = (act.fecha_limite - ahora).days
                     proximos.append({
                         "actividad_id": act.id,
                         "titulo": act.titulo,
+                        "curso": asig.curso.nombre,
                         "tipo": act.tipo,
                         "ponderacion": float(act.ponderacion),
                         "fecha_limite": act.fecha_limite.strftime("%Y-%m-%d %H:%M"),
                         "dias_restantes": dias,
                         "vencida": ahora > act.fecha_limite
                     })
-                stats.proximos_vencimientos = proximos
+            stats.proximos_vencimientos = sorted(proximos, key=lambda p: p["fecha_limite"])
 
     return stats
