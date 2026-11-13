@@ -90,6 +90,7 @@ export const api = {
   getMyEnrollments: () => apiRequest('/inscripciones/mias'),
   enroll: (data) => apiRequest('/inscripciones', { method: 'POST', body: JSON.stringify(data) }),
   getEnrollmentProgress: (inscripcionId) => apiRequest(`/inscripciones/${inscripcionId}/avance`),
+  markDocumentationComplete: (inscripcionId) => apiRequest(`/inscripciones/${inscripcionId}/documentacion-completa`, { method: 'PATCH' }),
 
   // Evidencias
   getEvidence: (actividadId, inscripcionId) => apiRequest(`/evidencias/actividad/${actividadId}/entrega?inscripcion_id=${inscripcionId}`),

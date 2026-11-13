@@ -40,6 +40,9 @@ export default function EvidencesPage({ user }) {
   const role = user?.rol?.codigo;
   const cursos = avance?.cursos || [];
   const inscripcionCerrada = ['APROBADO', 'NO_APROBADO', 'RETIRADO'].includes(avance?.estado_proceso);
+  // El backend decide según el estado de la convocatoria y de la inscripción
+  const permiteEntregas = avance ? avance.permite_entregas !== false : true;
+  const permiteCalificar = avance ? avance.permite_calificar !== false : true;
 
   // 1. Postulantes visibles según el rol (el postulante solo se ve a sí mismo)
   const loadInitial = async () => {
@@ -284,6 +287,21 @@ export default function EvidencesPage({ user }) {
               </div>
             ))}
           </div>
+          {avance.aviso_convocatoria && !inscripcionCerrada && (
+            <div className="notice-warning" style={{ marginTop: '14px' }}>
+              <AlertCircle size={16} />
+              <span>{avance.aviso_convocatoria}</span>
+            </div>
+          )}
+          {avance.documentacion_pendiente && (
+            <div className="notice-warning" style={{ marginTop: '14px' }}>
+              <AlertCircle size={16} />
+              <span>
+                La documentación de la inscripción está pendiente. Puede avanzar en los cursos, pero el proceso
+                no se aprueba hasta que coordinación confirme los documentos.
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -300,7 +318,7 @@ export default function EvidencesPage({ user }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Badge type={evidenceData?.estado_entrega || 'PENDIENTE'} />
             
-            {role === 'POSTULANTE' && selectedAct && !inscripcionCerrada && evidenceData?.estado_entrega !== 'APROBADO' && (
+            {role === 'POSTULANTE' && selectedAct && permiteEntregas && evidenceData?.estado_entrega !== 'APROBADO' && (
               <button
                 className="btn btn-primary"
                 onClick={() => { setUploadError(null); setShowUploadModal(true); }}
@@ -352,7 +370,7 @@ export default function EvidencesPage({ user }) {
                       <span>Descargar Privado</span>
                     </button>
 
-                    {['ADMIN', 'COORDINADOR', 'TUTOR'].includes(role) && !inscripcionCerrada && (
+                    {['ADMIN', 'COORDINADOR', 'TUTOR'].includes(role) && permiteCalificar && (
                       <button
                         className="btn btn-secondary"
                         style={{ padding: '8px 12px', fontSize: '0.825rem' }}

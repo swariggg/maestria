@@ -172,6 +172,20 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
   background: linear-gradient(180deg, var(--tint-red) 0%, #FFFFFF 100%);
 }
 
+/* Aviso en línea: estado de la convocatoria, documentación pendiente */
+.notice-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.notice-warning svg { flex-shrink: 0; margin-top: 1px; }
+
 /* Iconos de dos tonos: trazo oscuro y relleno dorado, como los iconos institucionales */
 .duo svg {
   fill: var(--color-gold);

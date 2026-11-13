@@ -14,7 +14,9 @@ from app.models.entities import (
     VersionEvidencia, Inscripcion, RegistroAuditoria
 )
 from app.schemas.pydantic_models import EvidenceOut
-from app.services.progress_service import asignacion_para_actividad, inscripcion_cerrada
+from app.services.progress_service import (
+    asignacion_para_actividad, inscripcion_cerrada, CONV_PERMITE_ENTREGAS, mensaje_convocatoria
+)
 
 router = APIRouter(prefix="/evidencias", tags=["Evidencias y Archivos"])
 
@@ -99,6 +101,8 @@ async def upload_evidence(
 
     if inscripcion_cerrada(inscripcion):
         raise HTTPException(status_code=400, detail=f"La inscripción está cerrada ({inscripcion.estado_proceso}); ya no admite nuevas evidencias.")
+    if inscripcion.convocatoria.estado not in CONV_PERMITE_ENTREGAS:
+        raise HTTPException(status_code=400, detail=f"{mensaje_convocatoria(inscripcion.convocatoria)} No se pueden cargar evidencias.")
 
     actividad = db.query(ActividadCurso).filter(ActividadCurso.id == actividad_id).first()
     if not actividad or actividad.estado != "ACTIVO":

@@ -138,7 +138,7 @@ BEGIN
     BEGIN
         INSERT INTO convocatorias (programa_id, codigo, nombre, fecha_apertura, fecha_cierre, fecha_inicio_preparatorio, fecha_fin_preparatorio, estado)
         VALUES 
-        (@IdProgIA2, 'CONV-2026-1', 'Convocatoria IA Cohorte I - 2026', CAST(DATEADD(DAY, -60, GETDATE()) AS DATE), CAST(DATEADD(DAY, 30, GETDATE()) AS DATE), CAST(DATEADD(DAY, -30, GETDATE()) AS DATE), CAST(DATEADD(DAY, 50, GETDATE()) AS DATE), 'EN_CURSO'),
+        (@IdProgIA2, 'CONV-2026-1', 'Convocatoria IA Cohorte I - 2026', CAST(DATEADD(DAY, -60, GETDATE()) AS DATE), CAST(DATEADD(DAY, 30, GETDATE()) AS DATE), CAST(DATEADD(DAY, -30, GETDATE()) AS DATE), CAST(DATEADD(DAY, 50, GETDATE()) AS DATE), 'ABIERTA'),
         (@IdProgCiber2, 'CONV-2026-CIBER', 'Convocatoria Ciberseguridad Cohorte I - 2026', CAST(DATEADD(DAY, -45, GETDATE()) AS DATE), CAST(DATEADD(DAY, 40, GETDATE()) AS DATE), CAST(DATEADD(DAY, -15, GETDATE()) AS DATE), CAST(DATEADD(DAY, 55, GETDATE()) AS DATE), 'EN_CURSO');
     END
 END
@@ -211,6 +211,7 @@ BEGIN
     DECLARE @IdInscPerez INT = (SELECT id FROM inscripciones WHERE postulante_id = (SELECT id FROM usuarios WHERE email = 'postulante.perez@uide.edu.ec'));
     DECLARE @IdInscMorales INT = (SELECT id FROM inscripciones WHERE postulante_id = (SELECT id FROM usuarios WHERE email = 'postulante.morales@uide.edu.ec'));
     DECLARE @IdInscZambrano INT = (SELECT id FROM inscripciones WHERE postulante_id = (SELECT id FROM usuarios WHERE email = 'postulante.zambrano@uide.edu.ec'));
+    DECLARE @IdInscAlvarado INT = (SELECT id FROM inscripciones WHERE postulante_id = (SELECT id FROM usuarios WHERE email = 'postulante.alvarado@uide.edu.ec'));
     DECLARE @IdCursoIA2 INT = (SELECT id FROM cursos_preparatorios WHERE codigo = 'CURSO-IA-101');
 
     IF NOT EXISTS (SELECT 1 FROM asignaciones_curso WHERE inscripcion_id = @IdInscPerez AND curso_id = @IdCursoIA2)
@@ -221,6 +222,11 @@ BEGIN
         (@IdInscMorales, @IdCursoIA2, 'EN_CURSO', 'PENDIENTE'),
         (@IdInscZambrano, @IdCursoIA2, 'EN_CURSO', 'PENDIENTE');
     END
+
+    -- Con la documentación pendiente igual tiene su curso asignado; solo no puede aprobar todavía
+    IF @IdInscAlvarado IS NOT NULL AND NOT EXISTS (SELECT 1 FROM asignaciones_curso WHERE inscripcion_id = @IdInscAlvarado AND curso_id = @IdCursoIA2)
+        INSERT INTO asignaciones_curso (inscripcion_id, curso_id, estado, estado_aprobacion)
+        VALUES (@IdInscAlvarado, @IdCursoIA2, 'EN_CURSO', 'PENDIENTE');
 END
 GO
 

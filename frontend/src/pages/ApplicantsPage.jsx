@@ -8,7 +8,8 @@ import {
   PhoneCall, 
   Mail, 
   Calendar,
-  AlertCircle
+  AlertCircle,
+  FileCheck
 } from 'lucide-react';
 import { api } from '../services/api';
 import Badge from '../components/Badge';
@@ -150,6 +151,17 @@ export default function ApplicantsPage({ user }) {
     }
   };
 
+  // Coordinación confirma que el postulante entregó los documentos obligatorios
+  const handleDocumentationComplete = async (app) => {
+    if (!window.confirm(`¿Confirmar que ${app.nombre_completo} entregó toda la documentación obligatoria?`)) return;
+    try {
+      await api.markDocumentationComplete(app.id);
+      loadApplicants();
+    } catch (err) {
+      alert(`No se pudo actualizar: ${err.message}`);
+    }
+  };
+
   // Descargar PDF Individual
   const handleDownloadPdf = async (inscripcionId, cedula) => {
     try {
@@ -288,6 +300,17 @@ export default function ApplicantsPage({ user }) {
                             onClick={() => handleOpenAssign(app)}
                           >
                             <UserPlus size={15} />
+                          </button>
+                        )}
+
+                        {['ADMIN', 'COORDINADOR'].includes(role) && app.estado_proceso === 'DOCUMENTACION_PENDIENTE' && (
+                          <button
+                            className="btn btn-outline"
+                            style={{ padding: '6px 8px', fontSize: '0.8rem' }}
+                            title="Marcar documentación completa"
+                            onClick={() => handleDocumentationComplete(app)}
+                          >
+                            <FileCheck size={15} />
                           </button>
                         )}
 

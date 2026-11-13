@@ -3,17 +3,21 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.security import get_current_user, require_roles, verify_applicant_access
+from app.core.security import get_current_user, require_roles, verify_applicant_access, verify_program_access
 from app.models.entities import (
     Usuario, Convocatoria, CursoPreparatorio, Inscripcion, AsignacionCurso, RegistroAuditoria
 )
 from app.schemas.pydantic_models import EnrollmentCreate, OpenCallOut, MyEnrollmentOut
 from app.services.notification_service import send_or_queue_notification
-from app.services.progress_service import calcular_avance, ESTADOS_INSCRIPCION_CERRADA
+from app.services.progress_service import (
+    calcular_avance, ESTADOS_INSCRIPCION_CERRADA, CONV_PERMITE_INSCRIPCION,
+    estado_inicial_inscripcion, marcar_documentacion_completa
+)
 
 router = APIRouter(prefix="/inscripciones", tags=["Postulantes e Inscripciones"])
 
-ESTADOS_CONVOCATORIA_ABIERTA = ["ABIERTA", "EN_CURSO"]
+# Solo una convocatoria ABIERTA recibe inscripciones; en EN_CURSO el preparatorio ya empezó
+ESTADOS_CONVOCATORIA_ABIERTA = CONV_PERMITE_INSCRIPCION
 
 
 def _cursos_activos(db: Session, convocatoria_id: int) -> List[CursoPreparatorio]:
@@ -98,6 +102,29 @@ def get_enrollment_progress(
     return calcular_avance(db, inscripcion)
 
 
+@router.patch("/{inscripcion_id}/documentacion-completa")
+def mark_documentation_complete(
+    inscripcion_id: int,
+    current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR")),
+    db: Session = Depends(get_db)
+):
+    """El coordinador confirma que el postulante entregó los documentos obligatorios."""
+    inscripcion = db.query(Inscripcion).filter(Inscripcion.id == inscripcion_id).first()
+    if not inscripcion:
+        raise HTTPException(status_code=404, detail="Inscripción no encontrada.")
+    if not verify_program_access(current_user, inscripcion.convocatoria.programa_id, db):
+        raise HTTPException(status_code=403, detail="No tiene permiso sobre el programa de esta inscripción.")
+    if inscripcion.estado_proceso != "DOCUMENTACION_PENDIENTE":
+        raise HTTPException(status_code=400, detail=f"La inscripción no tiene documentación pendiente (estado {inscripcion.estado_proceso}).")
+    if inscripcion.convocatoria.estado == "FINALIZADA":
+        raise HTTPException(status_code=400, detail="La convocatoria está finalizada.")
+
+    aprobado = marcar_documentacion_completa(db, inscripcion, current_user.id)
+    db.commit()
+    db.refresh(inscripcion)
+    return {"inscripcion_id": inscripcion.id, "estado_proceso": inscripcion.estado_proceso, "aprobado": aprobado}
+
+
 @router.post("", response_model=MyEnrollmentOut)
 def enroll(
     data: EnrollmentCreate,
@@ -132,7 +159,7 @@ def enroll(
         postulante_id=current_user.id,
         convocatoria_id=convocatoria.id,
         fecha_inscripcion=ahora,
-        estado_proceso="EN_CURSO",
+        estado_proceso=estado_inicial_inscripcion(db, convocatoria.id),
         nivel_riesgo="BAJO",
         motivo_riesgo="Inscripción reciente dentro del plazo reglamentario.",
         fecha_ultimo_avance=ahora,
@@ -174,7 +201,12 @@ def enroll(
             f"<p>Estimado(a) <strong>{current_user.nombre_completo}</strong>,</p>"
             f"<p>Su inscripción en <strong>{convocatoria.nombre}</strong> ({convocatoria.programa.nombre}) fue registrada.</p>"
             f"<p>Cursos preparatorios asignados:</p><ul>{lista_cursos}</ul>"
-            f"<p>Ingrese a la plataforma para revisar sus actividades y fechas límite.</p>"
+            + (
+                "<p>Su documentación consta como <strong>pendiente</strong>: entregue los requisitos obligatorios "
+                "a coordinación para que su proceso pueda aprobarse.</p>"
+                if inscripcion.estado_proceso == "DOCUMENTACION_PENDIENTE" else ""
+            )
+            + f"<p>Ingrese a la plataforma para revisar sus actividades y fechas límite.</p>"
         )
     )
 

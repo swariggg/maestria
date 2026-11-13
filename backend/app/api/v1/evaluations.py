@@ -8,7 +8,9 @@ from app.models.entities import (
     AsignacionCurso, ActividadCurso, RegistroAuditoria
 )
 from app.schemas.pydantic_models import EvaluationCreate, EvaluationOut
-from app.services.progress_service import actualizar_estado_inscripcion, inscripcion_cerrada
+from app.services.progress_service import (
+    actualizar_estado_inscripcion, inscripcion_cerrada, CONV_PERMITE_CALIFICAR, mensaje_convocatoria
+)
 
 router = APIRouter(prefix="/evaluaciones", tags=["Evaluaciones y Calificaciones"])
 
@@ -32,6 +34,8 @@ def evaluate_evidence_version(
 
     if inscripcion_cerrada(inscripcion):
         raise HTTPException(status_code=400, detail=f"La inscripción está cerrada ({inscripcion.estado_proceso}); ya no admite calificaciones.")
+    if inscripcion.convocatoria.estado not in CONV_PERMITE_CALIFICAR:
+        raise HTTPException(status_code=400, detail=f"{mensaje_convocatoria(inscripcion.convocatoria)} No se pueden registrar calificaciones.")
 
     actividad = entrega.actividad
     if data.puntaje_obtenido < 0 or data.puntaje_obtenido > float(actividad.ponderacion):

@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user, require_roles, verify_program_access
 from app.models.entities import CursoPreparatorio, ActividadCurso, Convocatoria, Usuario, RegistroAuditoria
 from app.schemas.pydantic_models import CourseOut, CourseCreate, ActivityOut, ActivityCreate
-from app.services.progress_service import asignar_curso_a_inscritos
+from app.services.progress_service import asignar_curso_a_inscritos, CONV_PERMITE_CURSOS
 
 router = APIRouter(prefix="/cursos", tags=["Cursos y Actividades"])
 
@@ -28,6 +28,8 @@ def create_course(
 
     if not verify_program_access(current_user, convocatoria.programa_id, db):
         raise HTTPException(status_code=403, detail="No tiene permiso para crear cursos en esta convocatoria.")
+    if convocatoria.estado not in CONV_PERMITE_CURSOS:
+        raise HTTPException(status_code=400, detail=f"La convocatoria está {convocatoria.estado}; ya no se pueden agregar cursos.")
 
     curso = CursoPreparatorio(
         convocatoria_id=data.convocatoria_id,
@@ -72,6 +74,8 @@ def create_activity(
     convocatoria = db.query(Convocatoria).filter(Convocatoria.id == curso.convocatoria_id).first()
     if not verify_program_access(current_user, convocatoria.programa_id, db):
         raise HTTPException(status_code=403, detail="No tiene permiso para agregar actividades en este curso.")
+    if convocatoria.estado not in CONV_PERMITE_CURSOS:
+        raise HTTPException(status_code=400, detail=f"La convocatoria está {convocatoria.estado}; ya no se pueden agregar actividades.")
 
     # Validar sumatoria de ponderaciones
     actividades_actuales = db.query(ActividadCurso).filter(ActividadCurso.curso_id == curso.id).all()
