@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.models.entities import (
     Inscripcion, Convocatoria, CursoPreparatorio, ActividadCurso,
     AsignacionCurso, EntregaEvidencia, VersionEvidencia, EvaluacionEvidencia, RegistroAuditoria,
-    RequisitoConvocatoria
+    RequisitoConvocatoria, AlertaRiesgo
 )
 
 # Estados en los que la inscripción ya terminó y no admite más cambios académicos
@@ -50,6 +50,20 @@ def tiene_requisitos_obligatorios(db: Session, convocatoria_id: int) -> bool:
 def estado_inicial_inscripcion(db: Session, convocatoria_id: int) -> str:
     """Si la convocatoria pide documentos obligatorios, el postulante empieza con la documentación pendiente."""
     return "DOCUMENTACION_PENDIENTE" if tiene_requisitos_obligatorios(db, convocatoria_id) else "EN_CURSO"
+
+
+def cerrar_alertas_inscripcion(db: Session, inscripcion: Inscripcion, motivo: str, ahora: datetime = None) -> int:
+    """Cierra todas las alertas abiertas de la inscripción (por ejemplo, cuando el proceso termina)."""
+    ahora = ahora or datetime.now()
+    abiertas = db.query(AlertaRiesgo).filter(
+        AlertaRiesgo.inscripcion_id == inscripcion.id,
+        AlertaRiesgo.resuelta == False  # noqa: E712
+    ).all()
+    for alerta in abiertas:
+        alerta.resuelta = True
+        alerta.fecha_resolucion = ahora
+        alerta.accion_tomada = motivo
+    return len(abiertas)
 
 
 def asignaciones_del_postulante(db: Session, inscripcion: Inscripcion) -> List[AsignacionCurso]:
@@ -205,6 +219,8 @@ def actualizar_estado_inscripcion(db: Session, inscripcion: Inscripcion, usuario
         return False
 
     inscripcion.actualizado_en = datetime.now()
+    if inscripcion.estado_proceso == "APROBADO":
+        cerrar_alertas_inscripcion(db, inscripcion, "Cerrada automáticamente: el postulante aprobó el preparatorio.")
     db.add(RegistroAuditoria(
         usuario_id=usuario_id,
         accion="CAMBIO_ESTADO_INSCRIPCION",
@@ -254,6 +270,7 @@ def cerrar_convocatoria(db: Session, convocatoria: Convocatoria, usuario_id: int
         anterior = insc.estado_proceso
         insc.estado_proceso = "NO_APROBADO"
         insc.actualizado_en = datetime.now()
+        cerrar_alertas_inscripcion(db, insc, "Cerrada automáticamente: convocatoria finalizada.")
         db.add(RegistroAuditoria(
             usuario_id=usuario_id,
             accion="CAMBIO_ESTADO_INSCRIPCION",

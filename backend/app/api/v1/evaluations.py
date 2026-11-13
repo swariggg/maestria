@@ -8,6 +8,7 @@ from app.models.entities import (
     AsignacionCurso, ActividadCurso, RegistroAuditoria
 )
 from app.schemas.pydantic_models import EvaluationCreate, EvaluationOut
+from app.services.risk_engine import evaluate_applicant_risk
 from app.services.progress_service import (
     actualizar_estado_inscripcion, inscripcion_cerrada, CONV_PERMITE_CALIFICAR, mensaje_convocatoria
 )
@@ -85,6 +86,10 @@ def evaluate_evidence_version(
         datos_nuevos_json=f'{{"nota": {data.puntaje_obtenido}, "resultado": "{data.resultado}"}}'
     ))
     db.commit()
+
+    # Una evidencia aprobada o rechazada cambia el riesgo del postulante
+    evaluate_applicant_risk(db, inscripcion.id)
+    db.refresh(evaluacion)
 
     return EvaluationOut(
         id=evaluacion.id,

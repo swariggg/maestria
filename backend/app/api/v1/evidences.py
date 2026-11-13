@@ -14,6 +14,7 @@ from app.models.entities import (
     VersionEvidencia, Inscripcion, RegistroAuditoria
 )
 from app.schemas.pydantic_models import EvidenceOut
+from app.services.risk_engine import evaluate_applicant_risk
 from app.services.progress_service import (
     asignacion_para_actividad, inscripcion_cerrada, CONV_PERMITE_ENTREGAS, mensaje_convocatoria
 )
@@ -203,6 +204,9 @@ async def upload_evidence(
         datos_nuevos_json=f'{{"version": {nueva_version_num}, "archivo": "{file.filename}", "es_tardia": {str(es_tardia).lower()}}}'
     ))
     db.commit()
+
+    # La entrega puede cerrar alertas de inactividad o de actividad vencida
+    evaluate_applicant_risk(db, inscripcion.id)
 
     return {
         "mensaje": "Evidencia cargada con éxito.",

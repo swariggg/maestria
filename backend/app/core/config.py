@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     # Business Rules
     DIAS_INACTIVIDAD_RIESGO: int = 7
     INTENTOS_SIN_RESPUESTA_ALERTA: int = 2
+    # Riesgo MEDIO si el avance real va este número de puntos (o más) por debajo del esperado
+    MARGEN_BAJO_AVANCE: int = 25
     TIMEZONE: str = "America/Guayaquil"
 
     class Config:

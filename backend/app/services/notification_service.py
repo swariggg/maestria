@@ -5,8 +5,10 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.models.entities import (
     NotificacionCola, RegistroIntentoEnvio, ActividadCurso, 
-    AsignacionCurso, Inscripcion, Usuario, PlantillaNotificacion
+    AsignacionCurso, Inscripcion, Usuario, PlantillaNotificacion,
+    CursoPreparatorio, Convocatoria, EntregaEvidencia
 )
+from app.services.progress_service import CONV_PERMITE_ENTREGAS, ESTADOS_INSCRIPCION_CERRADA
 from app.core.config import settings
 
 def send_or_queue_notification(
@@ -94,21 +96,32 @@ def check_and_send_deadline_reminders(db: Session) -> dict:
     ahora = datetime.now()
     enviados = 0
 
-    # Actividades futuras
-    actividades = db.query(ActividadCurso).filter(ActividadCurso.fecha_limite > ahora).all()
+    # Actividades activas que aún no vencen, de convocatorias que reciben entregas
+    actividades = db.query(ActividadCurso).join(CursoPreparatorio).join(Convocatoria).filter(
+        ActividadCurso.fecha_limite > ahora,
+        ActividadCurso.estado == "ACTIVO",
+        Convocatoria.estado.in_(CONV_PERMITE_ENTREGAS)
+    ).all()
 
     for act in actividades:
         dias_restantes = (act.fecha_limite - ahora).days
         if dias_restantes in intervalos_dias:
-            # Obtener todos los postulantes del curso
-            asignaciones = db.query(AsignacionCurso).filter(
-                AsignacionCurso.curso_id == act.curso_id
+            # Solo inscripciones vigentes del curso
+            asignaciones = db.query(AsignacionCurso).join(Inscripcion).filter(
+                AsignacionCurso.curso_id == act.curso_id,
+                Inscripcion.estado_proceso.notin_(ESTADOS_INSCRIPCION_CERRADA)
             ).all()
 
             for asig in asignaciones:
-                postulante = db.query(Usuario).join(Inscripcion).filter(
-                    Inscripcion.id == asig.inscripcion_id
+                # No se recuerda a quien ya entregó (salvo que deba corregir o fue rechazado)
+                entrega = db.query(EntregaEvidencia).filter(
+                    EntregaEvidencia.asignacion_curso_id == asig.id,
+                    EntregaEvidencia.actividad_id == act.id
                 ).first()
+                if entrega and entrega.estado_entrega not in ("PENDIENTE", "REQUIERE_CORRECCION", "RECHAZADO"):
+                    continue
+
+                postulante = asig.inscripcion.postulante
 
                 if postulante:
                     # Verificar si ya se envió el recordatorio para esta actividad, postulante y días restantes
