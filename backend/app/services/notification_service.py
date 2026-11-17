@@ -9,6 +9,7 @@ from app.models.entities import (
     CursoPreparatorio, Convocatoria, EntregaEvidencia
 )
 from app.services.progress_service import CONV_PERMITE_ENTREGAS, ESTADOS_INSCRIPCION_CERRADA
+from app.services.parametros import get_lista
 from app.core.config import settings
 
 def send_or_queue_notification(
@@ -91,8 +92,8 @@ def process_single_notification(db: Session, notif: NotificacionCola) -> bool:
         return False
 
 def check_and_send_deadline_reminders(db: Session) -> dict:
-    """Revisa recordatorios a los 15, 10, 5, 3 y 1 día antes del vencimiento sin duplicados."""
-    intervalos_dias = [15, 10, 5, 3, 1]
+    """Envía recordatorios los días configurados antes del vencimiento (por defecto 15, 10, 5, 3 y 1), sin duplicados."""
+    intervalos_dias = get_lista(db, "DIAS_RECORDATORIO")
     ahora = datetime.now()
     enviados = 0
 
@@ -135,7 +136,7 @@ def check_and_send_deadline_reminders(db: Session) -> dict:
                         asunto = f"UIDE: La actividad '{act.titulo}' vence en {dias_restantes} días"
                         html = f"""
                         <div style="font-family: sans-serif; color: #252533; max-width: 600px; border: 1px solid #E6E9F2; border-radius: 16px; padding: 24px; background: #FFFFFF;">
-                            <h2 style="color: #1E3A8A;">Recordatorio Académico UIDE</h2>
+                            <h2 style="color: #910048;">Recordatorio Académico UIDE</h2>
                             <p>Estimado(a) <strong>{postulante.nombre_completo}</strong>,</p>
                             <p>Le recordamos que la actividad <strong>{act.titulo}</strong> vence en <strong>{dias_restantes} días</strong>.</p>
                             <p><strong>Fecha límite:</strong> {act.fecha_limite.strftime('%Y-%m-%d %H:%M')}</p>

@@ -22,6 +22,7 @@ class RegisterRequest(BaseModel):
     ciudad: Optional[str] = None
     titulo_tercer_nivel: Optional[str] = None
     universidad_origen: Optional[str] = None
+    acepta_datos: bool = False
 
 class RolOut(BaseModel):
     id: int
@@ -39,6 +40,7 @@ class UserOut(BaseModel):
     telefono: Optional[str] = None
     estado: str
     rol: RolOut
+    debe_cambiar_password: bool = False
 
     class Config:
         from_attributes = True
@@ -77,24 +79,22 @@ class ProgramOut(BaseModel):
     class Config:
         from_attributes = True
 
-class ConvocatoriaCreate(BaseModel):
-    programa_id: int
-    codigo: str = Field(min_length=2, max_length=50)
-    nombre: str = Field(min_length=3, max_length=200)
-    fecha_apertura: date
-    fecha_cierre: date
-    fecha_inicio_preparatorio: date
-    fecha_fin_preparatorio: date
-
 class ConvocatoriaUpdate(BaseModel):
     nombre: str = Field(min_length=3, max_length=200)
     fecha_apertura: date
     fecha_cierre: date
     fecha_inicio_preparatorio: date
     fecha_fin_preparatorio: date
+    cupo_maximo: int = Field(60, ge=1, le=2000)
+    modalidad: str = "EN_LINEA"
+
+class ConvocatoriaCreate(ConvocatoriaUpdate):
+    programa_id: int
+    codigo: str = Field(min_length=2, max_length=50)
 
 class ConvocatoriaEstadoUpdate(BaseModel):
     estado: str
+    motivo: Optional[str] = None
 
 class ConvocatoriaOut(BaseModel):
     id: int
@@ -106,6 +106,9 @@ class ConvocatoriaOut(BaseModel):
     fecha_inicio_preparatorio: date
     fecha_fin_preparatorio: date
     estado: str
+    cupo_maximo: int = 60
+    modalidad: str = "EN_LINEA"
+    inscritos: int = 0
 
     class Config:
         from_attributes = True
@@ -113,24 +116,32 @@ class ConvocatoriaOut(BaseModel):
 # --- CURSOS Y ACTIVIDADES ---
 class CourseCreate(BaseModel):
     convocatoria_id: int
-    codigo: str
-    nombre: str
+    codigo: str = Field(min_length=2, max_length=50)
+    nombre: str = Field(min_length=3, max_length=200)
     descripcion: Optional[str] = None
-    nota_minima: float = 70.0
-    ponderacion_total: float = 100.0
+    nota_minima: float = Field(70.0, ge=0, le=100)
+    ponderacion_total: float = Field(100.0, gt=0, le=100)
 
-class ActivityCreate(BaseModel):
-    curso_id: int
-    titulo: str
+class CourseUpdate(BaseModel):
+    codigo: str = Field(min_length=2, max_length=50)
+    nombre: str = Field(min_length=3, max_length=200)
+    descripcion: Optional[str] = None
+    nota_minima: float = Field(ge=0, le=100)
+
+class ActivityUpdate(BaseModel):
+    titulo: str = Field(min_length=2, max_length=200)
     tipo: str = "INDIVIDUAL"
     instrucciones: Optional[str] = None
     fecha_apertura: datetime
     fecha_limite: datetime
-    ponderacion: float
+    ponderacion: float = Field(gt=0, le=100)
     es_obligatorio: bool = True
-    extensiones_permitidas: str = "pdf,zip,docx"
-    tamano_max_mb: int = 25
-    max_reenvios: int = 3
+    extensiones_permitidas: str = Field("pdf,zip,docx", min_length=2, max_length=100)
+    tamano_max_mb: int = Field(25, ge=1, le=50)
+    max_reenvios: int = Field(3, ge=1, le=10)
+
+class ActivityCreate(ActivityUpdate):
+    curso_id: int
 
 class ActivityOut(BaseModel):
     id: int
@@ -179,7 +190,16 @@ class ApplicantListItem(BaseModel):
     motivo_riesgo: Optional[str] = None
     fecha_inscripcion: datetime
     tutor_nombre: Optional[str] = None
+    tutor_id: Optional[int] = None
+    programa_id: Optional[int] = None
     porcentaje_avance: float = 0.0
+    estado_pago: str = "PENDIENTE"
+    tiene_beca: bool = False
+    porcentaje_beca: Optional[int] = None
+    requiere_adaptaciones: bool = False
+    nota_adaptaciones: Optional[str] = None
+    retiro_solicitado: bool = False
+    motivo_retiro: Optional[str] = None
 
 class EnrollmentCreate(BaseModel):
     convocatoria_id: int
@@ -196,6 +216,11 @@ class OpenCallOut(BaseModel):
     fecha_fin_preparatorio: date
     cursos: List[str] = []
     inscrito: bool = False
+    modalidad: str = "EN_LINEA"
+    cupo_maximo: int = 60
+    cupos_disponibles: int = 0
+    puede_inscribirse: bool = True
+    motivo_no_disponible: Optional[str] = None
 
 class MyEnrollmentOut(BaseModel):
     id: int
@@ -205,6 +230,8 @@ class MyEnrollmentOut(BaseModel):
     fecha_inscripcion: datetime
     estado_proceso: str
     cursos: List[str] = []
+    retiro_solicitado: bool = False
+    motivo_retiro: Optional[str] = None
 
 class RequirementUploadResponse(BaseModel):
     id: int
@@ -213,9 +240,15 @@ class RequirementUploadResponse(BaseModel):
     fecha_carga: datetime
 
 # --- EVIDENCIAS Y EVALUACIONES ---
+class PuntajeCriterioIn(BaseModel):
+    criterio_id: int
+    puntaje: float
+
 class EvaluationCreate(BaseModel):
     version_id: int
-    puntaje_obtenido: float
+    puntaje_obtenido: Optional[float] = None  # con rúbrica se calcula sumando los criterios
+    puntajes: List[PuntajeCriterioIn] = []
+    motivo_recalificacion: Optional[str] = None
     resultado: str # APROBADO, REQUIERE_CORRECCION, RECHAZADO
     observaciones: Optional[str] = None
     recomendaciones: Optional[str] = None
@@ -230,6 +263,7 @@ class EvaluationOut(BaseModel):
     observaciones: Optional[str]
     recomendaciones: Optional[str]
     fecha_evaluacion: datetime
+    puntajes: List[dict] = []
 
     class Config:
         from_attributes = True
@@ -260,7 +294,24 @@ class AssignTutorRequest(BaseModel):
     tutor_id: int
     motivo: Optional[str] = None
 
+class CompromisoIn(BaseModel):
+    descripcion: str = Field(min_length=3, max_length=500)
+    fecha_compromiso: date
+
+class CompromisoOut(BaseModel):
+    id: int
+    descripcion: str
+    fecha_compromiso: date
+    cumplido: bool
+    fecha_cumplimiento: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 class FollowupCreate(BaseModel):
+    observaciones: Optional[str] = None
+    recomendaciones: Optional[str] = None
+    compromisos: List[CompromisoIn] = []
     inscripcion_id: int
     fecha_contacto: datetime
     tipo_contacto: str # TELEFONO, CORREO, WHATSAPP, VIDEOCONFERENCIA, PRESENCIAL
@@ -289,6 +340,11 @@ class FollowupOut(BaseModel):
     fecha_proxima_accion: Optional[datetime]
     estado_caso: str
     creado_en: datetime
+    numero_seguimiento: Optional[int] = None
+    observaciones: Optional[str] = None
+    recomendaciones: Optional[str] = None
+    evidencia_nombre: Optional[str] = None
+    compromisos: List[CompromisoOut] = []
 
     class Config:
         from_attributes = True
@@ -298,12 +354,17 @@ class RiskAlertOut(BaseModel):
     id: int
     inscripcion_id: int
     postulante_nombre: str
+    programa_codigo: Optional[str] = None
     tipo_alerta: str
     nivel_riesgo: str
     motivo_detallado: str
     fecha_deteccion: datetime
     resuelta: bool
     fecha_resolucion: Optional[datetime] = None
+    accion_tomada: Optional[str] = None
+    resuelta_por_nombre: Optional[str] = None
+    derivada_a_nombre: Optional[str] = None
+    nota_derivacion: Optional[str] = None
 
 # --- AUDITORIA ---
 class AuditLogOut(BaseModel):
@@ -333,3 +394,48 @@ class DashboardStats(BaseModel):
     seguimientos_sin_respuesta: int = 0
     casos_criticos: List[dict] = []
     proximos_vencimientos: List[dict] = []
+    calendario: List[dict] = []
+    inscripciones: List[dict] = []
+
+# --- PERFIL Y DOCUMENTOS DEL POSTULANTE ---
+class ProfileUpdate(BaseModel):
+    telefono: Optional[str] = Field(None, max_length=30)
+    direccion: Optional[str] = Field(None, max_length=255)
+    ciudad: Optional[str] = Field(None, max_length=100)
+    pais: Optional[str] = Field("Ecuador", max_length=100)
+    titulo_tercer_nivel: Optional[str] = Field(None, max_length=200)
+    universidad_origen: Optional[str] = Field(None, max_length=200)
+    registrado_senescyt: bool = True
+    contacto_emergencia: Optional[str] = Field(None, max_length=150)
+    telefono_emergencia: Optional[str] = Field(None, max_length=30)
+
+class RequisitoCreate(BaseModel):
+    convocatoria_id: int
+    nombre: str = Field(min_length=3, max_length=150)
+    descripcion: Optional[str] = Field(None, max_length=500)
+    es_obligatorio: bool = True
+    formato_permitido: str = Field("pdf", min_length=2, max_length=100)
+    tamano_max_mb: int = Field(10, ge=1, le=50)
+
+class RequisitoUpdate(BaseModel):
+    nombre: str = Field(min_length=3, max_length=150)
+    descripcion: Optional[str] = Field(None, max_length=500)
+    es_obligatorio: bool = True
+    formato_permitido: str = Field("pdf", min_length=2, max_length=100)
+    tamano_max_mb: int = Field(10, ge=1, le=50)
+
+class RequisitoOut(BaseModel):
+    id: int
+    convocatoria_id: int
+    nombre: str
+    descripcion: Optional[str]
+    es_obligatorio: bool
+    formato_permitido: str
+    tamano_max_mb: int
+
+    class Config:
+        from_attributes = True
+
+class DocumentReview(BaseModel):
+    estado_revision: str  # APROBADO, REQUIERE_CORRECCION, RECHAZADO
+    observaciones: Optional[str] = Field(None, max_length=1000)

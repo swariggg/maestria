@@ -1,23 +1,44 @@
 import json
+from datetime import date
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user, require_roles, verify_program_access
-from app.models.entities import Programa, Convocatoria, CoordinadorPrograma, Usuario, RegistroAuditoria
+from app.models.entities import Programa, Convocatoria, CoordinadorPrograma, Usuario, RegistroAuditoria, Inscripcion
 from app.schemas.pydantic_models import (
     ProgramOut, ProgramCreate, ConvocatoriaOut, ConvocatoriaCreate,
     ConvocatoriaUpdate, ConvocatoriaEstadoUpdate
 )
 
-from app.services.progress_service import cerrar_convocatoria
+from app.services.progress_service import cerrar_convocatoria, reabrir_convocatoria, inscritos_vigentes
+from app.services.process_emails import correo_proceso_aprobado, correo_proceso_no_aprobado
 
 router = APIRouter(prefix="/programas", tags=["Programas y Convocatorias"])
 
-# Ciclo de vida de una convocatoria: solo se avanza al estado siguiente
+# Ciclo de vida de una convocatoria. Además del paso al estado siguiente se permite:
+# - EN_CURSO -> ABIERTA: reabrir inscripciones por un tiempo corto (con una fecha de cierre futura)
+# - FINALIZADA -> CERRADA: reabrir una convocatoria finalizada, con motivo
 FLUJO_ESTADOS_CONVOCATORIA = ["PLANIFICADA", "ABIERTA", "EN_CURSO", "CERRADA", "FINALIZADA"]
+TRANSICIONES_CONVOCATORIA = {
+    "PLANIFICADA": ["ABIERTA"],
+    "ABIERTA": ["EN_CURSO"],
+    "EN_CURSO": ["CERRADA", "ABIERTA"],
+    "CERRADA": ["FINALIZADA"],
+    "FINALIZADA": ["CERRADA"],
+}
+MODALIDADES = ["PRESENCIAL", "EN_LINEA", "HIBRIDA"]
+
+
+def convocatoria_out(db: Session, conv: Convocatoria) -> ConvocatoriaOut:
+    out = ConvocatoriaOut.model_validate(conv)
+    out.inscritos = inscritos_vigentes(db, conv.id)
+    return out
+
 
 def _validar_fechas_convocatoria(data):
+    if data.modalidad not in MODALIDADES:
+        raise HTTPException(status_code=400, detail=f"Modalidad inválida. Use: {', '.join(MODALIDADES)}.")
     if data.fecha_cierre < data.fecha_apertura:
         raise HTTPException(status_code=400, detail="La fecha de cierre no puede ser anterior a la fecha de apertura.")
     if data.fecha_fin_preparatorio < data.fecha_inicio_preparatorio:
@@ -31,6 +52,8 @@ def _datos_convocatoria(conv: Convocatoria) -> str:
         "fecha_cierre": str(conv.fecha_cierre),
         "fecha_inicio_preparatorio": str(conv.fecha_inicio_preparatorio),
         "fecha_fin_preparatorio": str(conv.fecha_fin_preparatorio),
+        "cupo_maximo": conv.cupo_maximo,
+        "modalidad": conv.modalidad,
     }, ensure_ascii=False)
 
 def _obtener_convocatoria_gestionable(convocatoria_id: int, current_user: Usuario, db: Session) -> Convocatoria:
@@ -103,7 +126,7 @@ def list_convocatorias_by_program(
 ):
     if not verify_program_access(current_user, programa_id, db):
         raise HTTPException(status_code=403, detail="No tiene autorización sobre este programa.")
-    return db.query(Convocatoria).filter(Convocatoria.programa_id == programa_id).all()
+    return [convocatoria_out(db, c) for c in db.query(Convocatoria).filter(Convocatoria.programa_id == programa_id).all()]
 
 @router.post("/convocatorias", response_model=ConvocatoriaOut)
 def create_convocatoria(
@@ -128,6 +151,8 @@ def create_convocatoria(
         fecha_cierre=data.fecha_cierre,
         fecha_inicio_preparatorio=data.fecha_inicio_preparatorio,
         fecha_fin_preparatorio=data.fecha_fin_preparatorio,
+        cupo_maximo=data.cupo_maximo,
+        modalidad=data.modalidad,
         estado="PLANIFICADA"
     )
     db.add(conv)
@@ -142,7 +167,7 @@ def create_convocatoria(
     ))
     db.commit()
     db.refresh(conv)
-    return conv
+    return convocatoria_out(db, conv)
 
 @router.put("/convocatorias/{convocatoria_id}", response_model=ConvocatoriaOut)
 def update_convocatoria(
@@ -163,6 +188,11 @@ def update_convocatoria(
     conv.fecha_cierre = data.fecha_cierre
     conv.fecha_inicio_preparatorio = data.fecha_inicio_preparatorio
     conv.fecha_fin_preparatorio = data.fecha_fin_preparatorio
+    inscritos = inscritos_vigentes(db, conv.id)
+    if data.cupo_maximo < inscritos:
+        raise HTTPException(status_code=400, detail=f"Ya hay {inscritos} inscritos; el cupo no puede ser menor.")
+    conv.cupo_maximo = data.cupo_maximo
+    conv.modalidad = data.modalidad
 
     db.add(RegistroAuditoria(
         usuario_id=current_user.id,
@@ -174,7 +204,7 @@ def update_convocatoria(
     ))
     db.commit()
     db.refresh(conv)
-    return conv
+    return convocatoria_out(db, conv)
 
 @router.patch("/convocatorias/{convocatoria_id}/estado", response_model=ConvocatoriaOut)
 def change_convocatoria_estado(
@@ -189,29 +219,37 @@ def change_convocatoria_estado(
     if nuevo_estado not in FLUJO_ESTADOS_CONVOCATORIA:
         raise HTTPException(status_code=400, detail="Estado de convocatoria no válido.")
 
-    indice_actual = FLUJO_ESTADOS_CONVOCATORIA.index(conv.estado)
-    if indice_actual == len(FLUJO_ESTADOS_CONVOCATORIA) - 1:
-        raise HTTPException(status_code=400, detail="La convocatoria ya está finalizada.")
-    siguiente = FLUJO_ESTADOS_CONVOCATORIA[indice_actual + 1]
-    if nuevo_estado != siguiente:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Desde {conv.estado} solo se puede pasar a {siguiente}."
-        )
+    permitidos = TRANSICIONES_CONVOCATORIA.get(conv.estado, [])
+    if nuevo_estado not in permitidos:
+        raise HTTPException(status_code=400, detail=f"Desde {conv.estado} solo se puede pasar a {' o '.join(permitidos)}.")
+    motivo = (data.motivo or "").strip()
+    if conv.estado == "EN_CURSO" and nuevo_estado == "ABIERTA" and conv.fecha_cierre < date.today():
+        raise HTTPException(status_code=400, detail="Para reabrir las inscripciones, primero ponga una nueva fecha de cierre (hoy o después).")
+    if conv.estado == "FINALIZADA" and len(motivo) < 5:
+        raise HTTPException(status_code=400, detail="Para reabrir una convocatoria finalizada indique el motivo (al menos 5 caracteres).")
 
     anterior = conv.estado
     conv.estado = nuevo_estado
 
-    # Al finalizar, quien no aprobó todos sus cursos queda NO_APROBADO
+    # Al finalizar, quien no aprobó todos sus cursos queda NO_APROBADO; al reabrir, vuelve a su estado anterior
     resumen_cierre = cerrar_convocatoria(db, conv, current_user.id) if nuevo_estado == "FINALIZADA" else None
+    resumen_reapertura = reabrir_convocatoria(db, conv, current_user.id) if anterior == "FINALIZADA" else None
     db.add(RegistroAuditoria(
         usuario_id=current_user.id,
         accion="CAMBIAR_ESTADO_CONVOCATORIA",
         entidad="CONVOCATORIA",
         entidad_id=str(conv.id),
         datos_anteriores_json=json.dumps({"estado": anterior}),
-        datos_nuevos_json=json.dumps({"estado": nuevo_estado, "cierre": resumen_cierre})
+        datos_nuevos_json=json.dumps({"estado": nuevo_estado, "cierre": resumen_cierre,
+                                      "reapertura": resumen_reapertura, "motivo": motivo or None}, ensure_ascii=False)
     ))
     db.commit()
+
+    # Cada postulante recibe su resultado final
+    if resumen_cierre:
+        for insc_id in resumen_cierre["ids_aprobados"]:
+            correo_proceso_aprobado(db, db.get(Inscripcion, insc_id))
+        for insc_id in resumen_cierre["ids_no_aprobados"]:
+            correo_proceso_no_aprobado(db, db.get(Inscripcion, insc_id))
     db.refresh(conv)
-    return conv
+    return convocatoria_out(db, conv)

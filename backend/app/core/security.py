@@ -77,6 +77,9 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cuenta de usuario inactiva, bloqueada o inexistente."
         )
+    # Con la clave inicial pendiente de cambio solo se permite cambiarla, ver la sesión o salir
+    if user.debe_cambiar_password and not request.url.path.endswith(("/auth/me", "/auth/cambiar-password", "/auth/logout")):
+        raise HTTPException(status_code=403, detail="Debe cambiar su contraseña inicial antes de continuar.")
     return user
 
 def require_roles(*allowed_roles: str):
@@ -131,3 +134,60 @@ def verify_applicant_access(user, postulante_usuario_id: int, db: Session) -> bo
         ).first()
         return bool(coord_asignado)
     return False
+
+
+def programas_del_coordinador(user, db: Session) -> list:
+    """Ids de los programas que el coordinador gestiona."""
+    from app.models.entities import CoordinadorPrograma
+    return [p[0] for p in db.query(CoordinadorPrograma.programa_id).filter(
+        CoordinadorPrograma.coordinador_id == user.id,
+        CoordinadorPrograma.activo == True  # noqa: E712
+    ).all()]
+
+
+def inscripciones_visibles(user, db: Session):
+    """
+    Consulta de inscripciones que el usuario puede ver según su rol:
+    ADMIN todas, COORDINADOR las de sus programas, TUTOR las de sus postulantes, POSTULANTE las suyas.
+    """
+    from app.models.entities import Inscripcion, Convocatoria, AsignacionTutor
+    query = db.query(Inscripcion)
+    rol = user.rol.codigo
+    if rol == "ADMIN":
+        return query
+    if rol == "COORDINADOR":
+        return query.join(Convocatoria, Convocatoria.id == Inscripcion.convocatoria_id).filter(
+            Convocatoria.programa_id.in_(programas_del_coordinador(user, db))
+        )
+    if rol == "TUTOR":
+        return query.join(AsignacionTutor, AsignacionTutor.inscripcion_id == Inscripcion.id).filter(
+            AsignacionTutor.tutor_id == user.id,
+            AsignacionTutor.estado == "ACTIVO"
+        )
+    return query.filter(Inscripcion.postulante_id == user.id)
+
+
+def cursos_visibles(user, db: Session):
+    """Cursos que el usuario puede ver: el coordinador los de sus programas; tutor y postulante, los asignados."""
+    from app.models.entities import CursoPreparatorio, Convocatoria, AsignacionCurso
+    query = db.query(CursoPreparatorio)
+    rol = user.rol.codigo
+    if rol == "ADMIN":
+        return query
+    if rol == "COORDINADOR":
+        return query.join(Convocatoria, Convocatoria.id == CursoPreparatorio.convocatoria_id).filter(
+            Convocatoria.programa_id.in_(programas_del_coordinador(user, db))
+        )
+    ids_insc = [i.id for i in inscripciones_visibles(user, db).all()]
+    ids_cursos = [c[0] for c in db.query(AsignacionCurso.curso_id).filter(
+        AsignacionCurso.inscripcion_id.in_(ids_insc)
+    ).distinct().all()]
+    if rol == "TUTOR":
+        # El tutor también ve los cursos de los programas donde puede acompañar (rúbricas y materiales)
+        from app.models.entities import TutorPrograma
+        programas = [p[0] for p in db.query(TutorPrograma.programa_id).filter(
+            TutorPrograma.tutor_id == user.id, TutorPrograma.activo == True).all()]
+        ids_cursos += [c[0] for c in db.query(CursoPreparatorio.id).join(
+            Convocatoria, Convocatoria.id == CursoPreparatorio.convocatoria_id
+        ).filter(Convocatoria.programa_id.in_(programas)).all()]
+    return query.filter(CursoPreparatorio.id.in_(set(ids_cursos)))

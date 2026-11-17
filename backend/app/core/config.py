@@ -51,3 +51,4 @@ settings = Settings()
 # Garantizar directorios privados
 os.makedirs(os.path.join(settings.STORAGE_DIR, "evidencias"), exist_ok=True)
 os.makedirs(os.path.join(settings.STORAGE_DIR, "documentos"), exist_ok=True)
+os.makedirs(os.path.join(settings.STORAGE_DIR, "materiales"), exist_ok=True)

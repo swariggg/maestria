@@ -17,6 +17,8 @@ frontend/dist/
 # Almacenamiento Privado Seguro (No subir archivos personales ni evidencias a git)
 storage/private/evidencias/*
 storage/private/documentos/*
+storage/private/seguimientos/*
+storage/private/materiales/*
 !storage/private/evidencias/.gitkeep
 !storage/private/documentos/.gitkeep
 

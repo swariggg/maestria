@@ -28,6 +28,8 @@ class Usuario(Base):
     estado = Column(String(20), default="ACTIVO") # ACTIVO, INACTIVO, BLOQUEADO
     intentos_fallidos = Column(Integer, default=0)
     fecha_bloqueo = Column(DateTime, nullable=True)
+    debe_cambiar_password = Column(Boolean, default=False)
+    acepto_datos_en = Column(DateTime, nullable=True)
     creado_en = Column(DateTime, default=datetime.utcnow)
     actualizado_en = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -35,6 +37,7 @@ class Usuario(Base):
     perfil = relationship("PerfilPostulante", back_populates="usuario", uselist=False)
     tutor_perfil = relationship("Tutor", back_populates="usuario", uselist=False)
     coordinaciones = relationship("CoordinadorPrograma", back_populates="coordinador", foreign_keys="CoordinadorPrograma.coordinador_id")
+    programas_tutor = relationship("TutorPrograma", foreign_keys="TutorPrograma.tutor_id")
 
 class Programa(Base):
     __tablename__ = "programas"
@@ -73,6 +76,8 @@ class Convocatoria(Base):
     fecha_inicio_preparatorio = Column(Date, nullable=False)
     fecha_fin_preparatorio = Column(Date, nullable=False)
     estado = Column(String(20), default="PLANIFICADA")
+    cupo_maximo = Column(Integer, default=60)
+    modalidad = Column(String(20), default="EN_LINEA") # PRESENCIAL, EN_LINEA, HIBRIDA
     creado_en = Column(DateTime, default=datetime.utcnow)
 
     programa = relationship("Programa", back_populates="convocatorias")
@@ -165,6 +170,14 @@ class Inscripcion(Base):
     nivel_riesgo = Column(String(20), default="BAJO") # BAJO, MEDIO, ALTO
     motivo_riesgo = Column(String(500), nullable=True)
     fecha_ultimo_avance = Column(DateTime, default=datetime.utcnow)
+    estado_pago = Column(String(20), default="PENDIENTE") # PENDIENTE, PAGADO, EXONERADO
+    tiene_beca = Column(Boolean, default=False)
+    porcentaje_beca = Column(Integer, nullable=True)
+    requiere_adaptaciones = Column(Boolean, default=False)
+    nota_adaptaciones = Column(String(500), nullable=True)
+    retiro_solicitado_en = Column(DateTime, nullable=True)
+    motivo_retiro = Column(String(500), nullable=True)
+    estado_previo_cierre = Column(String(30), nullable=True)
     creado_en = Column(DateTime, default=datetime.utcnow)
     actualizado_en = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -192,6 +205,7 @@ class DocumentoPostulante(Base):
     revisado_por = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     fecha_revision = Column(DateTime, nullable=True)
     fecha_carga = Column(DateTime, default=datetime.utcnow)
+    reabierto = Column(Boolean, default=False)
 
     inscripcion = relationship("Inscripcion", back_populates="documentos")
     requisito = relationship("RequisitoConvocatoria")
@@ -220,6 +234,37 @@ class Tutor(Base):
     activo = Column(Boolean, default=True)
 
     usuario = relationship("Usuario", back_populates="tutor_perfil")
+
+class TutorPrograma(Base):
+    __tablename__ = "tutores_programa"
+    id = Column(Integer, primary_key=True, index=True)
+    tutor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    programa_id = Column(Integer, ForeignKey("programas.id"), nullable=False)
+    activo = Column(Boolean, default=True)
+    asignado_en = Column(DateTime, default=datetime.utcnow)
+    asignado_por = Column(Integer, nullable=True)
+
+    programa = relationship("Programa")
+
+
+class MaterialCurso(Base):
+    __tablename__ = "materiales_curso"
+    id = Column(Integer, primary_key=True, index=True)
+    curso_id = Column(Integer, ForeignKey("cursos_preparatorios.id"), nullable=False)
+    tipo = Column(String(20), nullable=False) # ARCHIVO, ENLACE, SESION
+    titulo = Column(String(200), nullable=False)
+    descripcion = Column(String(1000), nullable=True)
+    url = Column(String(1000), nullable=True)
+    fecha_sesion = Column(DateTime, nullable=True)
+    nombre_original = Column(String(255), nullable=True)
+    ruta_privada = Column(String(500), nullable=True)
+    mime_type = Column(String(100), nullable=True)
+    subido_por = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    creado_en = Column(DateTime, default=datetime.utcnow)
+
+    curso = relationship("CursoPreparatorio")
+    autor = relationship("Usuario")
+
 
 class AsignacionTutor(Base):
     __tablename__ = "asignaciones_tutor"
@@ -277,9 +322,22 @@ class EvaluacionEvidencia(Base):
     observaciones = Column(Text, nullable=True)
     recomendaciones = Column(Text, nullable=True)
     fecha_evaluacion = Column(DateTime, default=datetime.utcnow)
+    motivo_recalificacion = Column(String(500), nullable=True)
 
     version = relationship("VersionEvidencia", back_populates="evaluacion")
     evaluador = relationship("Usuario", foreign_keys=[evaluador_id])
+    puntajes = relationship("PuntajeCriterio", back_populates="evaluacion")
+
+
+class PuntajeCriterio(Base):
+    __tablename__ = "puntajes_criterio"
+    id = Column(Integer, primary_key=True, index=True)
+    evaluacion_id = Column(Integer, ForeignKey("evaluaciones_evidencia.id"), nullable=False)
+    criterio_id = Column(Integer, ForeignKey("criterios_evaluacion.id"), nullable=False)
+    puntaje = Column(Numeric(5, 2), nullable=False)
+
+    evaluacion = relationship("EvaluacionEvidencia", back_populates="puntajes")
+    criterio = relationship("CriterioEvaluacion")
 
 class SeguimientoPostulante(Base):
     __tablename__ = "seguimientos_postulante"
@@ -298,6 +356,14 @@ class SeguimientoPostulante(Base):
     fecha_proxima_accion = Column(DateTime, nullable=True)
     estado_caso = Column(String(30), default="ABIERTO") # ABIERTO, EN_PROCESO, RESUELTO, ESCALADO
     creado_en = Column(DateTime, default=datetime.utcnow)
+    # Trazabilidad: número correlativo por postulante, observaciones y evidencia del contacto
+    numero_seguimiento = Column(Integer, nullable=True)
+    observaciones = Column(Text, nullable=True)
+    recomendaciones = Column(Text, nullable=True)
+    evidencia_nombre_original = Column(String(255), nullable=True)
+    evidencia_ruta_privada = Column(String(500), nullable=True)
+    evidencia_mime_type = Column(String(100), nullable=True)
+    evidencia_hash_sha256 = Column(String(64), nullable=True)
 
     inscripcion = relationship("Inscripcion", back_populates="seguimientos")
     tutor = relationship("Usuario", foreign_keys=[tutor_id])
@@ -338,9 +404,15 @@ class AlertaRiesgo(Base):
     fecha_resolucion = Column(DateTime, nullable=True)
     resuelta_por = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     accion_tomada = Column(String(500), nullable=True)
+    # Resuelta a mano: no se vuelve a abrir mientras el problema siga igual
+    bloquea_reapertura = Column(Boolean, default=False)
+    derivada_a = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    nota_derivacion = Column(String(500), nullable=True)
+    fecha_derivacion = Column(DateTime, nullable=True)
 
     inscripcion = relationship("Inscripcion", back_populates="alertas")
     usuario_resolutor = relationship("Usuario", foreign_keys=[resuelta_por])
+    usuario_derivado = relationship("Usuario", foreign_keys=[derivada_a])
 
 class PlantillaNotificacion(Base):
     __tablename__ = "plantillas_notificacion"

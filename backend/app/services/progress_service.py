@@ -172,7 +172,12 @@ def recalcular_curso(db: Session, asig: AsignacionCurso) -> None:
     obligatorias tienen su evidencia aprobada.
     """
     nota = 0.0
-    entregas = db.query(EntregaEvidencia).filter(EntregaEvidencia.asignacion_curso_id == asig.id).all()
+    # Solo cuentan las actividades vigentes: una dada de baja conserva su historial pero no suma
+    ids_activas = [a.id for a in _actividades_activas(db, asig.curso_id)]
+    entregas = db.query(EntregaEvidencia).filter(
+        EntregaEvidencia.asignacion_curso_id == asig.id,
+        EntregaEvidencia.actividad_id.in_(ids_activas)
+    ).all() if ids_activas else []
     for ent in entregas:
         ultima_evaluacion = db.query(EvaluacionEvidencia).join(VersionEvidencia).filter(
             VersionEvidencia.entrega_id == ent.id
@@ -259,15 +264,18 @@ def cerrar_convocatoria(db: Session, convocatoria: Convocatoria, usuario_id: int
     ).all()
 
     no_aprobados = 0
+    ids_aprobados, ids_no_aprobados = [], []
     for insc in inscripciones:
         # Último recálculo por si algún curso quedó aprobado sin una calificación reciente
         if actualizar_estado_inscripcion(db, insc, usuario_id):
+            ids_aprobados.append(insc.id)
             continue
         for asig in asignaciones_del_postulante(db, insc):
             if asig.estado_aprobacion != "APROBADO":
                 asig.estado_aprobacion = "REPROBADO"
                 asig.estado = "FINALIZADO"
         anterior = insc.estado_proceso
+        insc.estado_previo_cierre = anterior  # permite reabrir la convocatoria
         insc.estado_proceso = "NO_APROBADO"
         insc.actualizado_en = datetime.now()
         cerrar_alertas_inscripcion(db, insc, "Cerrada automáticamente: convocatoria finalizada.")
@@ -280,5 +288,86 @@ def cerrar_convocatoria(db: Session, convocatoria: Convocatoria, usuario_id: int
             datos_nuevos_json=json.dumps({"estado_proceso": "NO_APROBADO", "motivo": "Convocatoria finalizada"})
         ))
         no_aprobados += 1
+        ids_no_aprobados.append(insc.id)
 
-    return {"no_aprobados": no_aprobados}
+    return {"no_aprobados": no_aprobados, "ids_aprobados": ids_aprobados, "ids_no_aprobados": ids_no_aprobados}
+
+
+def reabrir_convocatoria(db: Session, convocatoria: Convocatoria, usuario_id: int) -> dict:
+    """
+    Deshace el cierre: quien quedó NO_APROBADO al finalizar vuelve al estado que tenía,
+    y sus cursos reprobados vuelven a estar pendientes. Los NO_APROBADO por otras causas
+    (intentos agotados) no cambian.
+    """
+    inscripciones = db.query(Inscripcion).filter(
+        Inscripcion.convocatoria_id == convocatoria.id,
+        Inscripcion.estado_proceso == "NO_APROBADO",
+        Inscripcion.estado_previo_cierre.isnot(None)
+    ).all()
+    for insc in inscripciones:
+        for asig in asignaciones_del_postulante(db, insc):
+            if asig.estado_aprobacion == "REPROBADO":
+                asig.estado_aprobacion = "PENDIENTE"
+                asig.estado = "EN_CURSO"
+        anterior = insc.estado_proceso
+        insc.estado_proceso = insc.estado_previo_cierre
+        insc.estado_previo_cierre = None
+        insc.actualizado_en = datetime.now()
+        db.add(RegistroAuditoria(
+            usuario_id=usuario_id, accion="CAMBIO_ESTADO_INSCRIPCION", entidad="INSCRIPCION", entidad_id=str(insc.id),
+            datos_anteriores_json=json.dumps({"estado_proceso": anterior}),
+            datos_nuevos_json=json.dumps({"estado_proceso": insc.estado_proceso, "motivo": "Convocatoria reabierta"})
+        ))
+    return {"restaurados": len(inscripciones)}
+
+
+def inscritos_vigentes(db: Session, convocatoria_id: int) -> int:
+    """Inscripciones que ocupan cupo (todas menos las retiradas)."""
+    return db.query(Inscripcion).filter(
+        Inscripcion.convocatoria_id == convocatoria_id,
+        Inscripcion.estado_proceso != "RETIRADO"
+    ).count()
+
+
+def intentos_agotados_sin_aprobar(db: Session, asig: AsignacionCurso) -> Optional[ActividadCurso]:
+    """
+    Actividad obligatoria cuya última versión se calificó sin aprobar y que ya no admite
+    más envíos: con ella el curso ya no se puede aprobar.
+    """
+    for act in _actividades_activas(db, asig.curso_id):
+        if not act.es_obligatorio:
+            continue
+        entrega = db.query(EntregaEvidencia).filter(
+            EntregaEvidencia.asignacion_curso_id == asig.id,
+            EntregaEvidencia.actividad_id == act.id
+        ).first()
+        if not entrega or entrega.estado_entrega == "APROBADO" or entrega.numero_versiones < act.max_reenvios:
+            continue
+        ultima = entrega.versiones[-1] if entrega.versiones else None
+        if ultima and ultima.evaluacion and ultima.evaluacion.resultado != "APROBADO":
+            return act
+    return None
+
+
+def marcar_no_aprobado_por_intentos(db: Session, inscripcion: Inscripcion, usuario_id: Optional[int] = None) -> Optional[str]:
+    """Si alguna actividad obligatoria agotó sus intentos sin aprobar, el proceso queda NO_APROBADO."""
+    if inscripcion_cerrada(inscripcion):
+        return None
+    for asig in asignaciones_del_postulante(db, inscripcion):
+        act = intentos_agotados_sin_aprobar(db, asig)
+        if not act:
+            continue
+        asig.estado_aprobacion = "REPROBADO"
+        asig.estado = "FINALIZADO"
+        anterior = inscripcion.estado_proceso
+        inscripcion.estado_proceso = "NO_APROBADO"
+        inscripcion.actualizado_en = datetime.now()
+        motivo = f"Agotó los {act.max_reenvios} intentos de la actividad obligatoria '{act.titulo}' ({asig.curso.codigo}) sin aprobarla."
+        cerrar_alertas_inscripcion(db, inscripcion, "Cerrada automáticamente: " + motivo)
+        db.add(RegistroAuditoria(
+            usuario_id=usuario_id, accion="CAMBIO_ESTADO_INSCRIPCION", entidad="INSCRIPCION", entidad_id=str(inscripcion.id),
+            datos_anteriores_json=json.dumps({"estado_proceso": anterior}),
+            datos_nuevos_json=json.dumps({"estado_proceso": "NO_APROBADO", "motivo": motivo}, ensure_ascii=False)
+        ))
+        return motivo
+    return None

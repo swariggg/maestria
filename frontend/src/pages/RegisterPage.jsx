@@ -11,7 +11,8 @@ const initialForm = {
   titulo_tercer_nivel: '',
   universidad_origen: '',
   password: '',
-  confirmar: ''
+  confirmar: '',
+  acepta_datos: false
 };
 
 export default function RegisterPage({ onRegistered, onBack }) {
@@ -19,14 +20,26 @@ export default function RegisterPage({ onRegistered, onBack }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
+    if (!/^\d{10}$/.test(form.cedula.trim())) {
+      setError('La cédula debe tener 10 dígitos.');
+      return;
+    }
+    if (!/[A-Za-z]/.test(form.password) || !/\d/.test(form.password)) {
+      setError('La contraseña debe tener al menos una letra y un número.');
+      return;
+    }
     if (form.password !== form.confirmar) {
       setError('Las contraseñas no coinciden.');
+      return;
+    }
+    if (!form.acepta_datos) {
+      setError('Debe aceptar el tratamiento de sus datos personales para registrarse.');
       return;
     }
 
@@ -54,7 +67,7 @@ export default function RegisterPage({ onRegistered, onBack }) {
     <div className="auth-screen">
       <div className="card" style={{ maxWidth: '560px', width: '100%', padding: '36px' }}>
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <img src="/uide-logo.png" alt="UIDE - Universidad Internacional del Ecuador" style={{ height: '64px', marginBottom: '18px' }} />
+          <img src="/uide-logo.svg" alt="UIDE - Universidad Internacional del Ecuador" style={{ height: '64px', marginBottom: '18px' }} />
           <h1>Crear Cuenta de Postulante</h1>
           <p style={{ color: 'var(--text-sec)', marginTop: '4px' }}>
             Regístrese para inscribirse en un curso preparatorio de maestría.
@@ -84,7 +97,7 @@ export default function RegisterPage({ onRegistered, onBack }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0 16px' }}>
             <div className="form-group">
               <label className="form-label">Cédula / Pasaporte *</label>
-              <input name="cedula" className="form-input" value={form.cedula} onChange={handleChange} minLength={10} maxLength={20} required />
+              <input name="cedula" className="form-input" value={form.cedula} onChange={handleChange} inputMode="numeric" minLength={10} maxLength={10} required />
             </div>
             <div className="form-group">
               <label className="form-label">Teléfono</label>
@@ -115,7 +128,7 @@ export default function RegisterPage({ onRegistered, onBack }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0 16px' }}>
             <div className="form-group">
-              <label className="form-label">Contraseña * (mín. 8)</label>
+              <label className="form-label">Contraseña * (mín. 8, letras y números)</label>
               <input type="password" name="password" className="form-input" value={form.password} onChange={handleChange} minLength={8} required />
             </div>
             <div className="form-group">
@@ -123,6 +136,14 @@ export default function RegisterPage({ onRegistered, onBack }) {
               <input type="password" name="confirmar" className="form-input" value={form.confirmar} onChange={handleChange} minLength={8} required />
             </div>
           </div>
+
+          <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '0.875rem', color: 'var(--text-sec)', margin: '4px 0 16px' }}>
+            <input type="checkbox" name="acepta_datos" checked={form.acepta_datos} onChange={handleChange} style={{ marginTop: '3px' }} />
+            <span>
+              Acepto que la UIDE trate mis datos personales para gestionar mi postulación y el curso preparatorio,
+              según la Ley Orgánica de Protección de Datos Personales.
+            </span>
+          </label>
 
           <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px', padding: '12px' }} disabled={loading}>
             <UserPlus size={18} />

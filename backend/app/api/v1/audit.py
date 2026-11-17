@@ -11,7 +11,7 @@ router = APIRouter(prefix="/auditoria", tags=["Auditoría y Trazabilidad"])
 @router.get("", response_model=List[AuditLogOut])
 def list_audit_logs(
     limit: int = Query(50, le=200),
-    current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR")),
+    current_user: Usuario = Depends(require_roles("ADMIN")),
     db: Session = Depends(get_db)
 ):
     query = db.query(RegistroAuditoria).order_by(RegistroAuditoria.fecha_creacion.desc()).limit(limit).all()

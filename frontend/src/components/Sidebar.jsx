@@ -7,7 +7,10 @@ import {
   BarChart3, 
   ShieldAlert, 
   History,
-  ClipboardList
+  ClipboardList,
+  UserRound,
+  SlidersHorizontal,
+  UserCog
 } from 'lucide-react';
 
 export default function Sidebar({ user, activeTab, setActiveTab }) {
@@ -16,11 +19,15 @@ export default function Sidebar({ user, activeTab, setActiveTab }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
     { id: 'enrollment', label: 'Inscripción', icon: ClipboardList, roles: ['POSTULANTE'] },
+    { id: 'profile', label: 'Mi Perfil', icon: UserRound, roles: ['POSTULANTE'] },
     { id: 'applicants', label: 'Postulantes', icon: Users, roles: ['ADMIN', 'COORDINADOR', 'TUTOR'] },
-    { id: 'courses', label: 'Programas y Cursos', icon: BookOpen, roles: ['ADMIN', 'COORDINADOR', 'POSTULANTE'] },
+    { id: 'courses', label: 'Programas y Cursos', icon: BookOpen, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
+    { id: 'alerts', label: 'Alertas', icon: ShieldAlert, roles: ['ADMIN', 'COORDINADOR', 'TUTOR'] },
     { id: 'evidences', label: 'Evidencias', icon: FileCheck, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
     { id: 'reports', label: 'Reportes y Matrices', icon: BarChart3, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
-    { id: 'audit', label: 'Auditoría Global', icon: History, roles: ['ADMIN', 'COORDINADOR'] },
+    { id: 'users', label: 'Usuarios', icon: UserCog, roles: ['ADMIN'] },
+    { id: 'config', label: 'Configuración', icon: SlidersHorizontal, roles: ['ADMIN'] },
+    { id: 'audit', label: 'Auditoría Global', icon: History, roles: ['ADMIN'] },
   ];
 
   const visibleItems = navItems.filter(item => item.roles.includes(role));

@@ -1,7 +1,8 @@
 import io
-from datetime import datetime
+from datetime import datetime, date
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
+from app.services.certificado import logo_flowable
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 import openpyxl
@@ -38,7 +39,7 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
         fontName='Helvetica-Bold',
         fontSize=18,
         leading=22,
-        textColor=colors.HexColor('#1E3A8A'),
+        textColor=colors.HexColor('#002D72'),
         alignment=1 # Centered
     )
     subtitle_style = ParagraphStyle(
@@ -72,11 +73,15 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
     story = []
 
     # Encabezado Institucional
+    logo = logo_flowable()
+    if logo:
+        story.append(logo)
+        story.append(Spacer(1, 6))
     story.append(Paragraph("UNIVERSIDAD INTERNACIONAL DEL ECUADOR (UIDE)", title_style))
     story.append(Paragraph("Dirección General de Posgrados - APP Maestría", subtitle_style))
     story.append(Paragraph("INFORME INDIVIDUAL DE SEGUIMIENTO ACADÉMICO PREPARATORIO", subtitle_style))
     story.append(Spacer(1, 10))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#BFD5FF'), spaceAfter=15))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#EAAA00'), spaceAfter=15))
 
     # Datos del Postulante y Programa
     tutor_asig = db.query(AsignacionTutor).filter(
@@ -155,7 +160,7 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
     
     act_table = Table(act_rows, colWidths=[200, 75, 95, 80, 80])
     act_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#DCE7FF')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E6ECF5')),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
         ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -192,7 +197,7 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
         
         seg_table = Table(seg_rows, colWidths=[70, 80, 180, 130, 70])
         seg_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F8C7DE')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F7E6EE')),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('TOPPADDING', (0, 0), (-1, -1), 5),
@@ -209,15 +214,79 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
     buffer.seek(0)
     return buffer
 
-def generate_consolidated_excel_report(db: Session, programa_id: int = None, convocatoria_id: int = None) -> io.BytesIO:
+COLUMNAS_MATRIZ = [
+    "Postulante", "Cédula", "Programa", "Convocatoria", "Fecha Inscripción",
+    "% Avance", "Actividades Pendientes", "Días Pendientes", "Tutor Asignado",
+    "# Seguimientos", "Estado", "Nivel de Riesgo"
+]
+
+
+def inscripciones_matriz(db: Session, programa_id: int = None, convocatoria_id: int = None, programa_ids: list = None,
+                         inscripcion_ids: list = None):
+    """
+    Inscripciones de la matriz según los filtros y el alcance: programa_ids para el coordinador,
+    inscripcion_ids para el tutor (solo sus postulantes).
+    """
+    query = db.query(Inscripcion)
+    if inscripcion_ids is not None:
+        query = query.filter(Inscripcion.id.in_(inscripcion_ids))
+    if convocatoria_id:
+        query = query.filter(Inscripcion.convocatoria_id == convocatoria_id)
+    elif programa_id:
+        query = query.filter(Inscripcion.convocatoria_id.in_(
+            db.query(Convocatoria.id).filter(Convocatoria.programa_id == programa_id)
+        ))
+    if programa_ids is not None:
+        query = query.filter(Inscripcion.convocatoria_id.in_(
+            db.query(Convocatoria.id).filter(Convocatoria.programa_id.in_(programa_ids))
+        ))
+    return query.order_by(Inscripcion.convocatoria_id, Inscripcion.id).all()
+
+
+def dias_pendientes(inscripcion: Inscripcion) -> int:
+    """Días que faltan para el fin del preparatorio (0 si ya terminó)."""
+    fin = inscripcion.convocatoria.fecha_fin_preparatorio
+    return max(0, (fin - date.today()).days) if fin else 0
+
+
+def filas_matriz(db: Session, inscripciones) -> list:
+    """Mismas columnas para la matriz en Excel y en PDF."""
+    filas = []
+    for insc in inscripciones:
+        post = insc.postulante
+        conv = insc.convocatoria
+        tutor_asig = db.query(AsignacionTutor).filter(
+            AsignacionTutor.inscripcion_id == insc.id,
+            AsignacionTutor.estado == 'ACTIVO'
+        ).first()
+        avance = calcular_avance(db, insc)
+        filas.append([
+            post.nombre_completo,
+            post.cedula,
+            conv.programa.codigo,
+            conv.codigo,
+            insc.fecha_inscripcion.strftime("%Y-%m-%d"),
+            f"{avance['porcentaje']}%",
+            avance["actividades_pendientes"],
+            dias_pendientes(insc),
+            tutor_asig.tutor.nombre_completo if tutor_asig else "Sin Tutor",
+            db.query(SeguimientoPostulante).filter(SeguimientoPostulante.inscripcion_id == insc.id).count(),
+            insc.estado_proceso,
+            insc.nivel_riesgo,
+        ])
+    return filas
+
+
+def generate_consolidated_excel_report(db: Session, programa_id: int = None, convocatoria_id: int = None, programa_ids: list = None,
+                                       inscripcion_ids: list = None) -> io.BytesIO:
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Matriz de Seguimiento"
 
     # Estilos UIDE
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
-    title_font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
+    header_fill = PatternFill(start_color="002D72", end_color="002D72", fill_type="solid")
+    title_font = Font(name="Calibri", size=14, bold=True, color="002D72")
     subtitle_font = Font(name="Calibri", size=10, italic=True, color="4B5563")
     border_thin = Border(
         left=Side(style='thin', color='CBD5E1'),
@@ -226,22 +295,20 @@ def generate_consolidated_excel_report(db: Session, programa_id: int = None, con
         bottom=Side(style='thin', color='CBD5E1')
     )
 
+    headers = COLUMNAS_MATRIZ
+    ultima = openpyxl.utils.get_column_letter(len(headers))
+
     # Título
-    ws.merge_cells("A1:I1")
+    ws.merge_cells(f"A1:{ultima}1")
     ws["A1"] = "UNIVERSIDAD INTERNACIONAL DEL ECUADOR - DIRECCIÓN DE POSGRADOS"
     ws["A1"].font = title_font
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
 
-    ws.merge_cells("A2:I2")
+    ws.merge_cells(f"A2:{ultima}2")
     ws["A2"] = f"Matriz Consolidada de Seguimiento Académico - Cursos Preparatorios (Generado: {datetime.now().strftime('%Y-%m-%d %H:%M')})"
     ws["A2"].font = subtitle_font
     ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
 
-    # Encabezados
-    headers = [
-        "Postulante", "Cédula", "Programa", "Convocatoria", "Fecha Inscripción",
-        "% Avance", "Tutor Asignado", "# Seguimientos", "Estado", "Nivel de Riesgo"
-    ]
     for col_idx, h in enumerate(headers, 1):
         cell = ws.cell(row=4, column=col_idx, value=h)
         cell.font = header_font
@@ -249,55 +316,18 @@ def generate_consolidated_excel_report(db: Session, programa_id: int = None, con
         cell.alignment = Alignment(horizontal="center", vertical="center")
         cell.border = border_thin
 
-    # Query
-    query = db.query(Inscripcion)
-    if convocatoria_id:
-        query = query.filter(Inscripcion.convocatoria_id == convocatoria_id)
-    elif programa_id:
-        query = query.join(Convocatoria).filter(Convocatoria.programa_id == programa_id)
-    
-    inscripciones = query.all()
+    inscripciones = inscripciones_matriz(db, programa_id, convocatoria_id, programa_ids, inscripcion_ids)
+    col_riesgo = headers.index("Nivel de Riesgo") + 1
 
     row_num = 5
-    for insc in inscripciones:
-        post = insc.postulante
-        conv = insc.convocatoria
-        prog = conv.programa
-
-        # Tutor
-        tutor_asig = db.query(AsignacionTutor).filter(
-            AsignacionTutor.inscripcion_id == insc.id,
-            AsignacionTutor.estado == 'ACTIVO'
-        ).first()
-        tutor_nombre = tutor_asig.tutor.nombre_completo if tutor_asig else "Sin Tutor"
-
-        # Seguimientos
-        num_seg = db.query(SeguimientoPostulante).filter(SeguimientoPostulante.inscripcion_id == insc.id).count()
-
-        # Avance sumando todos los cursos asignados
-        pct_avance = calcular_avance(db, insc)["porcentaje"]
-
-        row_data = [
-            post.nombre_completo,
-            post.cedula,
-            prog.codigo,
-            conv.codigo,
-            insc.fecha_inscripcion.strftime("%Y-%m-%d"),
-            f"{pct_avance}%",
-            tutor_nombre,
-            num_seg,
-            insc.estado_proceso,
-            insc.nivel_riesgo
-        ]
-
-        for col_idx, val in enumerate(row_data, 1):
+    for fila in filas_matriz(db, inscripciones):
+        for col_idx, val in enumerate(fila, 1):
             cell = ws.cell(row=row_num, column=col_idx, value=val)
             cell.border = border_thin
-            if col_idx in [2, 3, 4, 5, 6, 8, 9, 10]:
+            if col_idx > 1:
                 cell.alignment = Alignment(horizontal="center")
-            
             # Pintar riesgo
-            if col_idx == 10:
+            if col_idx == col_riesgo:
                 if val == "ALTO":
                     cell.fill = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
                     cell.font = Font(color="991B1B", bold=True)
@@ -307,7 +337,6 @@ def generate_consolidated_excel_report(db: Session, programa_id: int = None, con
                 else:
                     cell.fill = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
                     cell.font = Font(color="065F46", bold=True)
-
         row_num += 1
 
     # Autoajuste de columnas

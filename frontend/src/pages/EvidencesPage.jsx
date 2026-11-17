@@ -36,6 +36,10 @@ export default function EvidencesPage({ user }) {
   const [evalObs, setEvalObs] = useState('');
   const [evalRec, setEvalRec] = useState('');
   const [evalError, setEvalError] = useState(null);
+  const [evalMotivo, setEvalMotivo] = useState('');
+  const [evalEsRecalificacion, setEvalEsRecalificacion] = useState(false);
+  const [criterios, setCriterios] = useState([]);
+  const [evalPuntajes, setEvalPuntajes] = useState({});
 
   const role = user?.rol?.codigo;
   const cursos = avance?.cursos || [];
@@ -43,6 +47,11 @@ export default function EvidencesPage({ user }) {
   // El backend decide según el estado de la convocatoria y de la inscripción
   const permiteEntregas = avance ? avance.permite_entregas !== false : true;
   const permiteCalificar = avance ? avance.permite_calificar !== false : true;
+  // Califica el tutor asignado; coordinación o administración solo si el postulante no tiene tutor
+  const postulanteSel = applicants.find((a) => a.id === selectedInscId);
+  const puedeCalificarRol = role === 'TUTOR' || (['ADMIN', 'COORDINADOR'].includes(role) && !postulanteSel?.tutor_id);
+  const ultimaVersionId = evidenceData?.versiones?.length ? evidenceData.versiones[evidenceData.versiones.length - 1].id : null;
+  const totalRubrica = criterios.reduce((suma, c) => suma + (parseFloat(evalPuntajes[c.id]) || 0), 0);
 
   // 1. Postulantes visibles según el rol (el postulante solo se ve a sí mismo)
   const loadInitial = async () => {
@@ -121,6 +130,12 @@ export default function EvidencesPage({ user }) {
     }
   }, [selectedAct, selectedInscId]);
 
+  // Rúbrica de la actividad (si tiene, la nota es la suma de los criterios)
+  useEffect(() => {
+    if (!selectedAct) { setCriterios([]); return; }
+    api.getCriteria(selectedAct.id).then((r) => setCriterios(r.criterios)).catch(() => setCriterios([]));
+  }, [selectedAct]);
+
   // Manejar Subida de Evidencia
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
@@ -170,6 +185,11 @@ export default function EvidencesPage({ user }) {
     setEvalResult(version.evaluacion ? version.evaluacion.resultado : 'APROBADO');
     setEvalObs(version.evaluacion ? version.evaluacion.observaciones || '' : '');
     setEvalRec(version.evaluacion ? version.evaluacion.recomendaciones || '' : '');
+    setEvalEsRecalificacion(!!version.evaluacion);
+    setEvalMotivo('');
+    const previos = {};
+    (version.evaluacion?.puntajes || []).forEach((p) => { previos[p.criterio_id] = p.puntaje; });
+    setEvalPuntajes(previos);
     setEvalError(null);
     setShowEvalModal(true);
   };
@@ -180,7 +200,9 @@ export default function EvidencesPage({ user }) {
     try {
       await api.evaluateVersion({
         version_id: evalVersionId,
-        puntaje_obtenido: parseFloat(evalScore),
+        puntaje_obtenido: criterios.length ? null : parseFloat(evalScore),
+        puntajes: criterios.map((c) => ({ criterio_id: c.id, puntaje: parseFloat(evalPuntajes[c.id]) || 0 })),
+        motivo_recalificacion: evalEsRecalificacion ? evalMotivo : null,
         resultado: evalResult,
         observaciones: evalObs,
         recomendaciones: evalRec
@@ -318,7 +340,7 @@ export default function EvidencesPage({ user }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Badge type={evidenceData?.estado_entrega || 'PENDIENTE'} />
             
-            {role === 'POSTULANTE' && selectedAct && permiteEntregas && evidenceData?.estado_entrega !== 'APROBADO' && (
+            {role === 'POSTULANTE' && selectedAct && permiteEntregas && evidenceData?.puede_enviar && (
               <button
                 className="btn btn-primary"
                 onClick={() => { setUploadError(null); setShowUploadModal(true); }}
@@ -329,6 +351,26 @@ export default function EvidencesPage({ user }) {
             )}
           </div>
         </div>
+
+        {evidenceData && (
+          <div style={{ marginBottom: '16px', fontSize: '0.875rem', color: 'var(--text-sec)' }}>
+            Intentos: <strong>{evidenceData.intentos_usados} de {evidenceData.max_intentos}</strong>
+            {' '}· Calificados: {evidenceData.intentos_calificados}
+            {' '}· Abre: {selectedAct ? new Date(selectedAct.fecha_apertura).toLocaleString() : ''}
+            {' '}· Cierra: {selectedAct ? new Date(selectedAct.fecha_limite).toLocaleString() : ''}
+            {role === 'POSTULANTE' && evidenceData.motivo_bloqueo && evidenceData.estado_entrega !== 'APROBADO' && (
+              <div className="notice-warning" style={{ marginTop: '10px' }}>
+                <AlertCircle size={16} />
+                <span>{evidenceData.motivo_bloqueo}</span>
+              </div>
+            )}
+          </div>
+        )}
+        {criterios.length > 0 && (
+          <div style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '12px', background: 'var(--surface-muted)', fontSize: '0.85rem' }}>
+            <strong>Rúbrica:</strong> {criterios.map((c) => `${c.criterio} (${c.puntaje_maximo} pts)`).join(' · ')}
+          </div>
+        )}
 
         {/* Versiones de Entrega */}
         {(!evidenceData || evidenceData.versiones.length === 0) ? (
@@ -370,7 +412,7 @@ export default function EvidencesPage({ user }) {
                       <span>Descargar Privado</span>
                     </button>
 
-                    {['ADMIN', 'COORDINADOR', 'TUTOR'].includes(role) && permiteCalificar && (
+                    {puedeCalificarRol && permiteCalificar && v.id === ultimaVersionId && (!v.evaluacion || v.evaluacion.evaluador_id === user?.id) && (
                       <button
                         className="btn btn-secondary"
                         style={{ padding: '8px 12px', fontSize: '0.825rem' }}
@@ -398,6 +440,15 @@ export default function EvidencesPage({ user }) {
                       </span>
                       <Badge type={v.evaluacion.resultado} />
                     </div>
+                    {v.evaluacion.puntajes?.length > 0 && (
+                      <p style={{ fontSize: '0.825rem', marginTop: '6px', color: 'var(--text-sec)' }}>
+                        {v.evaluacion.puntajes.map((p) => `${p.criterio}: ${p.puntaje}/${p.puntaje_maximo}`).join(' · ')}
+                      </p>
+                    )}
+                    <small style={{ display: 'block', color: 'var(--text-sec)', marginTop: '4px' }}>
+                      Calificó {v.evaluacion.evaluador_nombre}
+                      {v.evaluacion.motivo_recalificacion && ` · Recalificada: ${v.evaluacion.motivo_recalificacion}`}
+                    </small>
                     {v.evaluacion.observaciones && (
                       <p style={{ fontSize: '0.875rem', marginTop: '6px' }}>
                         <strong>Observaciones:</strong> {v.evaluacion.observaciones}
@@ -464,20 +515,34 @@ export default function EvidencesPage({ user }) {
           </div>
         )}
         <form onSubmit={handleSaveEval}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {criterios.length > 0 && (
             <div className="form-group">
-              <label className="form-label">Calificación (Ponderación máx: {selectedAct?.ponderacion})</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max={selectedAct?.ponderacion}
-                className="form-input"
-                value={evalScore}
-                onChange={(e) => setEvalScore(e.target.value)}
-                required
-              />
+              <label className="form-label">Puntaje por criterio · Total: {totalRubrica.toFixed(2)} / {selectedAct?.ponderacion}</label>
+              {criterios.map((c) => (
+                <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: '10px', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.875rem' }}>{c.criterio} <small style={{ color: 'var(--text-sec)' }}>(máx. {c.puntaje_maximo})</small></span>
+                  <input type="number" step="0.01" min="0" max={c.puntaje_maximo} className="form-input" required
+                    value={evalPuntajes[c.id] ?? ''} onChange={(e) => setEvalPuntajes({ ...evalPuntajes, [c.id]: e.target.value })} />
+                </div>
+              ))}
             </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {criterios.length === 0 && (
+              <div className="form-group">
+                <label className="form-label">Calificación (Ponderación máx: {selectedAct?.ponderacion})</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={selectedAct?.ponderacion}
+                  className="form-input"
+                  value={evalScore}
+                  onChange={(e) => setEvalScore(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label">Resultado</label>
@@ -488,6 +553,14 @@ export default function EvidencesPage({ user }) {
               </select>
             </div>
           </div>
+
+          {evalEsRecalificacion && (
+            <div className="form-group">
+              <label className="form-label">Motivo del cambio de calificación *</label>
+              <input className="form-input" value={evalMotivo} onChange={(e) => setEvalMotivo(e.target.value)} minLength={5} required
+                placeholder="Ej.: error al sumar la rúbrica" />
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Observaciones Académicas</label>

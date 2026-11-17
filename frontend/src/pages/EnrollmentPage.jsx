@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, CalendarDays, BookOpen } from 'lucide-react';
+import { ClipboardList, CalendarDays, BookOpen, Users, MonitorSmartphone } from 'lucide-react';
+
+const MODALIDAD = { PRESENCIAL: 'Presencial', EN_LINEA: 'En línea', HIBRIDA: 'Híbrida' };
 import { api } from '../services/api';
 import Badge from '../components/Badge';
 
@@ -44,8 +46,6 @@ export default function EnrollmentPage() {
     }
   };
 
-  const tieneInscripcionVigente = misInscripciones.some((i) => !['RETIRADO', 'APROBADO', 'NO_APROBADO'].includes(i.estado_proceso));
-
   if (loading) {
     return <div style={{ textAlign: 'center', padding: '60px' }}>Cargando convocatorias...</div>;
   }
@@ -56,6 +56,8 @@ export default function EnrollmentPage() {
         <h1>Inscripción a Programas de Maestría</h1>
         <p style={{ color: 'var(--text-sec)' }}>
           Seleccione una convocatoria abierta. Los cursos preparatorios se asignan automáticamente al inscribirse.
+          Puede inscribirse en más de un programa si las fechas de los preparatorios no se cruzan.
+          Antes debe completar su perfil en <strong>Mi Perfil</strong>.
         </p>
       </div>
 
@@ -122,6 +124,12 @@ export default function EnrollmentPage() {
                 <small style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-sec)', marginTop: '4px' }}>
                   <CalendarDays size={14} /> Preparatorio: {conv.fecha_inicio_preparatorio} al {conv.fecha_fin_preparatorio}
                 </small>
+                <small style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-sec)', marginTop: '4px' }}>
+                  <MonitorSmartphone size={14} /> Modalidad: {MODALIDAD[conv.modalidad] || conv.modalidad || '—'}
+                </small>
+                <small style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-sec)', marginTop: '4px' }}>
+                  <Users size={14} /> Cupos disponibles: {conv.cupos_disponibles ?? '—'} de {conv.cupo_maximo ?? '—'}
+                </small>
                 <small style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', color: 'var(--text-sec)', marginTop: '4px' }}>
                   <BookOpen size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
                   {sinCursos ? 'Aún sin cursos preparatorios configurados' : conv.cursos.join(', ')}
@@ -131,16 +139,23 @@ export default function EnrollmentPage() {
                   {conv.inscrito ? (
                     <Badge type="APROBADO" text="YA INSCRITO" />
                   ) : (
+                    <>
                     <button
                       className="btn btn-primary"
                       style={{ width: '100%' }}
                       onClick={() => handleEnroll(conv)}
-                      disabled={sinCursos || tieneInscripcionVigente || enrollingId !== null}
-                      title={tieneInscripcionVigente ? 'Ya tiene una inscripción vigente' : undefined}
+                      disabled={sinCursos || conv.puede_inscribirse === false || enrollingId !== null}
+                      title={conv.motivo_no_disponible || undefined}
                     >
                       <ClipboardList size={16} />
                       {enrollingId === conv.id ? 'Inscribiendo...' : 'Inscribirme'}
                     </button>
+                    {conv.puede_inscribirse === false && conv.motivo_no_disponible && (
+                      <small style={{ display: 'block', marginTop: '8px', color: 'var(--status-warning-text, var(--text-sec))' }}>
+                        {conv.motivo_no_disponible}
+                      </small>
+                    )}
+                    </>
                   )}
                 </div>
               </div>

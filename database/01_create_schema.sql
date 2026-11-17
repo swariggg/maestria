@@ -393,6 +393,40 @@ BEGIN
 END
 GO
 
+-- Campos de seguimiento agregados después de la primera versión.
+-- Cada bloque revisa si la columna ya existe, así el script se puede volver a correr sin borrar datos.
+IF COL_LENGTH('seguimientos_postulante', 'numero_seguimiento') IS NULL
+    ALTER TABLE seguimientos_postulante ADD numero_seguimiento INT NULL;
+GO
+IF COL_LENGTH('seguimientos_postulante', 'observaciones') IS NULL
+    ALTER TABLE seguimientos_postulante ADD observaciones NVARCHAR(MAX) NULL;
+GO
+IF COL_LENGTH('seguimientos_postulante', 'recomendaciones') IS NULL
+    ALTER TABLE seguimientos_postulante ADD recomendaciones NVARCHAR(MAX) NULL;
+GO
+IF COL_LENGTH('seguimientos_postulante', 'evidencia_nombre_original') IS NULL
+    ALTER TABLE seguimientos_postulante ADD evidencia_nombre_original NVARCHAR(255) NULL;
+GO
+IF COL_LENGTH('seguimientos_postulante', 'evidencia_ruta_privada') IS NULL
+    ALTER TABLE seguimientos_postulante ADD evidencia_ruta_privada NVARCHAR(500) NULL;
+GO
+IF COL_LENGTH('seguimientos_postulante', 'evidencia_mime_type') IS NULL
+    ALTER TABLE seguimientos_postulante ADD evidencia_mime_type NVARCHAR(100) NULL;
+GO
+IF COL_LENGTH('seguimientos_postulante', 'evidencia_hash_sha256') IS NULL
+    ALTER TABLE seguimientos_postulante ADD evidencia_hash_sha256 NVARCHAR(64) NULL;
+GO
+
+-- Numera los seguimientos que ya existían (1, 2, 3... por postulante, en orden de fecha)
+UPDATE s SET numero_seguimiento = n.numero
+FROM seguimientos_postulante s
+JOIN (
+    SELECT id, ROW_NUMBER() OVER (PARTITION BY inscripcion_id ORDER BY fecha_contacto, id) AS numero
+    FROM seguimientos_postulante
+) n ON n.id = s.id
+WHERE s.numero_seguimiento IS NULL;
+GO
+
 -- 21. Reglas de Riesgo Configurables
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'reglas_riesgo')
 BEGIN
@@ -543,6 +577,116 @@ BEGIN
         respuesta_simulada_json NVARCHAR(MAX) NULL,
         codigo_estado INT NOT NULL DEFAULT 200,
         fecha_registro DATETIME2 DEFAULT SYSDATETIME()
+    );
+END
+GO
+
+-- ============================================================================
+-- Cambios de la ronda de reglas (16-nov-2026). Se pueden volver a correr sin borrar datos.
+-- ============================================================================
+IF COL_LENGTH('convocatorias', 'cupo_maximo') IS NULL
+    ALTER TABLE convocatorias ADD cupo_maximo INT NOT NULL CONSTRAINT DF_conv_cupo DEFAULT 60;
+GO
+IF COL_LENGTH('convocatorias', 'modalidad') IS NULL
+    ALTER TABLE convocatorias ADD modalidad NVARCHAR(20) NOT NULL CONSTRAINT DF_conv_modalidad DEFAULT 'EN_LINEA';
+GO
+IF COL_LENGTH('usuarios', 'debe_cambiar_password') IS NULL
+    ALTER TABLE usuarios ADD debe_cambiar_password BIT NOT NULL CONSTRAINT DF_usr_cambiar DEFAULT 0;
+GO
+IF COL_LENGTH('usuarios', 'acepto_datos_en') IS NULL
+    ALTER TABLE usuarios ADD acepto_datos_en DATETIME2 NULL;
+GO
+IF COL_LENGTH('inscripciones', 'estado_pago') IS NULL
+    ALTER TABLE inscripciones ADD estado_pago NVARCHAR(20) NOT NULL CONSTRAINT DF_insc_pago DEFAULT 'PENDIENTE';
+GO
+IF COL_LENGTH('inscripciones', 'tiene_beca') IS NULL
+    ALTER TABLE inscripciones ADD tiene_beca BIT NOT NULL CONSTRAINT DF_insc_beca DEFAULT 0;
+GO
+IF COL_LENGTH('inscripciones', 'porcentaje_beca') IS NULL
+    ALTER TABLE inscripciones ADD porcentaje_beca INT NULL;
+GO
+IF COL_LENGTH('inscripciones', 'requiere_adaptaciones') IS NULL
+    ALTER TABLE inscripciones ADD requiere_adaptaciones BIT NOT NULL CONSTRAINT DF_insc_adapt DEFAULT 0;
+GO
+IF COL_LENGTH('inscripciones', 'nota_adaptaciones') IS NULL
+    ALTER TABLE inscripciones ADD nota_adaptaciones NVARCHAR(500) NULL;
+GO
+IF COL_LENGTH('inscripciones', 'retiro_solicitado_en') IS NULL
+    ALTER TABLE inscripciones ADD retiro_solicitado_en DATETIME2 NULL;
+GO
+IF COL_LENGTH('inscripciones', 'motivo_retiro') IS NULL
+    ALTER TABLE inscripciones ADD motivo_retiro NVARCHAR(500) NULL;
+GO
+IF COL_LENGTH('inscripciones', 'estado_previo_cierre') IS NULL
+    ALTER TABLE inscripciones ADD estado_previo_cierre NVARCHAR(30) NULL;
+GO
+IF COL_LENGTH('documentos_postulante', 'reabierto') IS NULL
+    ALTER TABLE documentos_postulante ADD reabierto BIT NOT NULL CONSTRAINT DF_doc_reabierto DEFAULT 0;
+GO
+IF COL_LENGTH('evaluaciones_evidencia', 'motivo_recalificacion') IS NULL
+    ALTER TABLE evaluaciones_evidencia ADD motivo_recalificacion NVARCHAR(500) NULL;
+GO
+IF COL_LENGTH('alertas_riesgo', 'bloquea_reapertura') IS NULL
+    ALTER TABLE alertas_riesgo ADD bloquea_reapertura BIT NOT NULL CONSTRAINT DF_ar_bloquea DEFAULT 0;
+GO
+IF COL_LENGTH('alertas_riesgo', 'derivada_a') IS NULL
+    ALTER TABLE alertas_riesgo ADD derivada_a INT NULL;
+GO
+IF COL_LENGTH('alertas_riesgo', 'nota_derivacion') IS NULL
+    ALTER TABLE alertas_riesgo ADD nota_derivacion NVARCHAR(500) NULL;
+GO
+IF COL_LENGTH('alertas_riesgo', 'fecha_derivacion') IS NULL
+    ALTER TABLE alertas_riesgo ADD fecha_derivacion DATETIME2 NULL;
+GO
+
+-- 30. Programas en los que puede trabajar cada tutor
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'tutores_programa')
+BEGIN
+    CREATE TABLE tutores_programa (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        tutor_id INT NOT NULL,
+        programa_id INT NOT NULL,
+        activo BIT NOT NULL DEFAULT 1,
+        asignado_en DATETIME2 DEFAULT SYSDATETIME(),
+        asignado_por INT NULL,
+        CONSTRAINT FK_tp_tutor FOREIGN KEY (tutor_id) REFERENCES usuarios(id),
+        CONSTRAINT FK_tp_programa FOREIGN KEY (programa_id) REFERENCES programas(id)
+    );
+END
+GO
+
+-- 31. Materiales y sesiones en vivo de cada curso
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'materiales_curso')
+BEGIN
+    CREATE TABLE materiales_curso (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        curso_id INT NOT NULL,
+        tipo NVARCHAR(20) NOT NULL, -- ARCHIVO, ENLACE, SESION
+        titulo NVARCHAR(200) NOT NULL,
+        descripcion NVARCHAR(1000) NULL,
+        url NVARCHAR(1000) NULL,
+        fecha_sesion DATETIME2 NULL,
+        nombre_original NVARCHAR(255) NULL,
+        ruta_privada NVARCHAR(500) NULL,
+        mime_type NVARCHAR(100) NULL,
+        subido_por INT NOT NULL,
+        creado_en DATETIME2 DEFAULT SYSDATETIME(),
+        CONSTRAINT FK_mc_curso FOREIGN KEY (curso_id) REFERENCES cursos_preparatorios(id),
+        CONSTRAINT FK_mc_usuario FOREIGN KEY (subido_por) REFERENCES usuarios(id)
+    );
+END
+GO
+
+-- 32. Puntaje por criterio de la rúbrica
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'puntajes_criterio')
+BEGIN
+    CREATE TABLE puntajes_criterio (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        evaluacion_id INT NOT NULL,
+        criterio_id INT NOT NULL,
+        puntaje DECIMAL(5,2) NOT NULL,
+        CONSTRAINT FK_pc_evaluacion FOREIGN KEY (evaluacion_id) REFERENCES evaluaciones_evidencia(id),
+        CONSTRAINT FK_pc_criterio FOREIGN KEY (criterio_id) REFERENCES criterios_evaluacion(id)
     );
 END
 GO

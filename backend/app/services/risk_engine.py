@@ -9,10 +9,10 @@ from datetime import datetime
 from typing import Dict, Tuple
 from sqlalchemy.orm import Session
 from app.models.entities import (
-    Inscripcion, AlertaRiesgo, SeguimientoPostulante,
-    EntregaEvidencia, ActividadCurso
+    Inscripcion, AlertaRiesgo, SeguimientoPostulante, CompromisoSeguimiento,
+    EntregaEvidencia, ActividadCurso, AsignacionTutor
 )
-from app.core.config import settings
+from app.services import parametros
 from app.services.progress_service import (
     calcular_avance, asignaciones_del_postulante, inscripcion_cerrada, cerrar_alertas_inscripcion
 )
@@ -25,14 +25,18 @@ ESTADOS_INSCRIPCION_EVALUABLES = ["REGISTRADO", "DOCUMENTACION_PENDIENTE", "EN_C
 
 NIVEL_ORDEN = {"BAJO": 0, "MEDIO": 1, "ALTO": 2}
 
+# Tipos que crea y cierra el motor (las demás alertas solo se cierran a mano)
+TIPOS_AUTOMATICOS = ("INACTIVIDAD", "CONTACTO_SIN_RESPUESTA", "SIN_EVIDENCIA", "BAJO_AVANCE",
+                     "VENCIMIENTO_PROXIMO", "COMPROMISO_VENCIDO")
+
 
 def _subir_nivel(actual: str, nuevo: str) -> str:
     return nuevo if NIVEL_ORDEN[nuevo] > NIVEL_ORDEN[actual] else actual
 
 
 def _clave_alerta(tipo: str, motivo: str) -> Tuple[str, str]:
-    """Las alertas SIN_EVIDENCIA son una por actividad; las demás, una por tipo."""
-    if tipo == "SIN_EVIDENCIA":
+    """Las alertas SIN_EVIDENCIA y COMPROMISO_VENCIDO son una por actividad o compromiso; las demás, una por tipo."""
+    if tipo in ("SIN_EVIDENCIA", "COMPROMISO_VENCIDO"):
         return tipo, motivo
     return tipo, ""
 
@@ -65,7 +69,7 @@ def _condiciones_activas(db: Session, inscripcion: Inscripcion, ahora: datetime)
         motivos.append(motivo)
 
     # 1. Inactividad académica
-    dias_limite = settings.DIAS_INACTIVIDAD_RIESGO
+    dias_limite = parametros.get_int(db, "DIAS_INACTIVIDAD_RIESGO")
     fecha_referencia = inscripcion.fecha_ultimo_avance or inscripcion.fecha_inscripcion
     dias_inactivo = (ahora - fecha_referencia).days
     if dias_inactivo >= dias_limite:
@@ -73,7 +77,7 @@ def _condiciones_activas(db: Session, inscripcion: Inscripcion, ahora: datetime)
                 f"Inactividad prolongada de {dias_inactivo} días (umbral institucional: {dias_limite} días).")
 
     # 2. Contactos consecutivos sin respuesta
-    intentos_limite = settings.INTENTOS_SIN_RESPUESTA_ALERTA
+    intentos_limite = parametros.get_int(db, "INTENTOS_SIN_RESPUESTA_ALERTA")
     ultimos = db.query(SeguimientoPostulante).filter(
         SeguimientoPostulante.inscripcion_id == inscripcion.id
     ).order_by(SeguimientoPostulante.fecha_contacto.desc()).limit(intentos_limite).all()
@@ -82,6 +86,7 @@ def _condiciones_activas(db: Session, inscripcion: Inscripcion, ahora: datetime)
                 f"Acumulación de {intentos_limite} intentos de contacto consecutivos del tutor sin respuesta del postulante.")
 
     # 3. Actividades vencidas sin evidencia (alerta) o próximas a vencer (solo aviso)
+    dias_por_vencer = parametros.get_int(db, "DIAS_PROXIMA_A_VENCER")
     for asig in asignaciones_del_postulante(db, inscripcion):
         actividades = db.query(ActividadCurso).filter(
             ActividadCurso.curso_id == asig.curso_id,
@@ -97,17 +102,27 @@ def _condiciones_activas(db: Session, inscripcion: Inscripcion, ahora: datetime)
             if ahora > act.fecha_limite:
                 agregar("SIN_EVIDENCIA", "ALTO",
                         f"Actividad '{act.titulo}' ({asig.curso.codigo}) vencida sin evidencia aprobada.")
-            elif (act.fecha_limite - ahora).days <= 5:
+            elif (act.fecha_limite - ahora).days <= dias_por_vencer:
                 motivos.append(f"Actividad '{act.titulo}' próxima a vencer en {(act.fecha_limite - ahora).days} días.")
 
     # 4. Bajo avance frente a lo esperado según el calendario del preparatorio
     esperado = avance_esperado(inscripcion, ahora)
     avance = calcular_avance(db, inscripcion)
     real = avance["porcentaje"]
-    margen = settings.MARGEN_BAJO_AVANCE
+    margen = parametros.get_int(db, "MARGEN_BAJO_AVANCE")
     if avance["total_actividades"] > 0 and esperado - real >= margen:
         agregar("BAJO_AVANCE", "MEDIO",
                 f"Bajo avance: {real}% real frente a {esperado}% esperado a la fecha (margen permitido: {margen} puntos).")
+
+    # 5. Compromisos del seguimiento que vencieron sin cumplirse
+    vencidos = db.query(CompromisoSeguimiento).join(SeguimientoPostulante).filter(
+        SeguimientoPostulante.inscripcion_id == inscripcion.id,
+        CompromisoSeguimiento.cumplido == False,  # noqa: E712
+        CompromisoSeguimiento.fecha_compromiso < ahora.date()
+    ).all()
+    for comp in vencidos:
+        agregar("COMPROMISO_VENCIDO", "MEDIO",
+                f"Compromiso vencido el {comp.fecha_compromiso}: {comp.descripcion}")
 
     return condiciones, motivos
 
@@ -132,11 +147,29 @@ def evaluate_applicant_risk(db: Session, inscripcion_id: int, ahora: datetime = 
 
     condiciones, motivos = _condiciones_activas(db, inscripcion, ahora)
 
+    # Lo que el tutor resolvió a mano no vuelve a aparecer mientras siga igual;
+    # si la condición desaparece, se libera para alertar de nuevo si vuelve a pasar.
+    resueltas_a_mano = db.query(AlertaRiesgo).filter(
+        AlertaRiesgo.inscripcion_id == inscripcion.id,
+        AlertaRiesgo.resuelta == True,  # noqa: E712
+        AlertaRiesgo.bloquea_reapertura == True  # noqa: E712
+    ).all()
+    suprimidas = set()
+    for alerta in resueltas_a_mano:
+        clave = _clave_alerta(alerta.tipo_alerta, alerta.motivo_detallado)
+        if clave in condiciones:
+            suprimidas.add(clave)
+        else:
+            alerta.bloquea_reapertura = False
+    for clave in suprimidas:
+        motivo_suprimido = condiciones.pop(clave)[2]
+        if motivo_suprimido in motivos:
+            motivos.remove(motivo_suprimido)
+
+    # El nivel sale solo de las alertas; "por vencer" es un aviso que no cambia el riesgo
     nivel = "BAJO"
     for _tipo, nivel_cond, _motivo in condiciones.values():
         nivel = _subir_nivel(nivel, nivel_cond)
-    if nivel == "BAJO" and len(motivos) > len(condiciones):
-        nivel = "MEDIO"  # Tiene actividades por vencer en 5 días o menos
 
     # Abrir alertas nuevas y cerrar las que ya no aplican
     abiertas = db.query(AlertaRiesgo).filter(
@@ -148,14 +181,16 @@ def evaluate_applicant_risk(db: Session, inscripcion_id: int, ahora: datetime = 
         clave = _clave_alerta(alerta.tipo_alerta, alerta.motivo_detallado)
         if clave in condiciones and clave not in claves_abiertas:
             claves_abiertas.add(clave)
-        elif alerta.tipo_alerta in ("INACTIVIDAD", "CONTACTO_SIN_RESPUESTA", "SIN_EVIDENCIA", "BAJO_AVANCE"):
+        elif alerta.tipo_alerta in TIPOS_AUTOMATICOS:
             # Solo se cierran solas las alertas que crea el motor
             alerta.resuelta = True
             alerta.fecha_resolucion = ahora
             alerta.accion_tomada = "Resuelta automáticamente: la condición que la originó ya no se cumple."
 
+    nuevas = []
     for clave, (tipo, nivel_cond, motivo) in condiciones.items():
         if clave not in claves_abiertas:
+            nuevas.append(motivo)
             db.add(AlertaRiesgo(
                 inscripcion_id=inscripcion.id,
                 tipo_alerta=tipo,
@@ -170,6 +205,15 @@ def evaluate_applicant_risk(db: Session, inscripcion_id: int, ahora: datetime = 
 
     db.commit()
     db.refresh(inscripcion)
+
+    # El tutor recibe un correo por cada alerta nueva
+    if nuevas:
+        asig = db.query(AsignacionTutor).filter(
+            AsignacionTutor.inscripcion_id == inscripcion.id, AsignacionTutor.estado == "ACTIVO"
+        ).first()
+        if asig:
+            from app.services.process_emails import correo_alerta_nueva
+            correo_alerta_nueva(db, inscripcion, asig.tutor, nuevas)
 
     return {
         "inscripcion_id": inscripcion.id,

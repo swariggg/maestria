@@ -293,6 +293,16 @@ BEGIN
 END
 GO
 
+-- 15b. Numeración correlativa de los seguimientos por postulante
+UPDATE s SET numero_seguimiento = n.numero
+FROM seguimientos_postulante s
+JOIN (
+    SELECT id, ROW_NUMBER() OVER (PARTITION BY inscripcion_id ORDER BY fecha_contacto, id) AS numero
+    FROM seguimientos_postulante
+) n ON n.id = s.id
+WHERE s.numero_seguimiento IS NULL;
+GO
+
 -- 16. Alertas de Riesgo Registradas
 BEGIN
     DECLARE @IdInscZambrano5 INT = (SELECT id FROM inscripciones WHERE postulante_id = (SELECT id FROM usuarios WHERE email = 'postulante.zambrano@uide.edu.ec'));
@@ -306,6 +316,38 @@ BEGIN
         (@IdInscZambrano5, 'CONTACTO_SIN_RESPUESTA', 'ALTO', 'Dos intentos consecutivos de contacto documentados por el tutor sin respuesta del postulante.', 0),
         (@IdInscMorales5, 'VENCIMIENTO_PROXIMO', 'MEDIO', N'Taller 1 vencido sin evidencia cargada.', 0);
     END
+END
+GO
+
+-- 17. Parámetros configurables del proceso (Configuración, solo administrador)
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM configuracion_sistema WHERE clave = 'DIAS_INACTIVIDAD_RIESGO')
+        INSERT INTO configuracion_sistema (clave, valor, descripcion, categoria) VALUES ('DIAS_INACTIVIDAD_RIESGO', '7', N'Días sin avance para marcar riesgo alto por inactividad', 'RIESGO');
+    IF NOT EXISTS (SELECT 1 FROM configuracion_sistema WHERE clave = 'INTENTOS_SIN_RESPUESTA_ALERTA')
+        INSERT INTO configuracion_sistema (clave, valor, descripcion, categoria) VALUES ('INTENTOS_SIN_RESPUESTA_ALERTA', '2', N'Contactos seguidos sin respuesta para marcar riesgo alto', 'RIESGO');
+    IF NOT EXISTS (SELECT 1 FROM configuracion_sistema WHERE clave = 'DIAS_PROXIMA_A_VENCER')
+        INSERT INTO configuracion_sistema (clave, valor, descripcion, categoria) VALUES ('DIAS_PROXIMA_A_VENCER', '5', N'Días antes del vencimiento en que una actividad pendiente da riesgo medio', 'RIESGO');
+    IF NOT EXISTS (SELECT 1 FROM configuracion_sistema WHERE clave = 'MARGEN_BAJO_AVANCE')
+        INSERT INTO configuracion_sistema (clave, valor, descripcion, categoria) VALUES ('MARGEN_BAJO_AVANCE', '25', N'Puntos por debajo del avance esperado para marcar riesgo medio', 'RIESGO');
+    IF NOT EXISTS (SELECT 1 FROM configuracion_sistema WHERE clave = 'DIAS_RECORDATORIO')
+        INSERT INTO configuracion_sistema (clave, valor, descripcion, categoria) VALUES ('DIAS_RECORDATORIO', '5,3,1', N'Días antes del vencimiento en que se envía un recordatorio por correo', 'NOTIFICACIONES');
+END
+GO
+
+-- Recordatorios a 5, 3 y 1 días (si la base todavía tiene el valor anterior)
+UPDATE configuracion_sistema SET valor = '5,3,1' WHERE clave = 'DIAS_RECORDATORIO' AND valor = '15,10,5,3,1';
+GO
+
+-- 18. Programas donde puede acompañar cada tutor
+BEGIN
+    DECLARE @TutIA INT = (SELECT id FROM usuarios WHERE email = 'tutor.ia@uide.edu.ec');
+    DECLARE @TutCiber INT = (SELECT id FROM usuarios WHERE email = 'tutor.ciber@uide.edu.ec');
+    DECLARE @PIA INT = (SELECT id FROM programas WHERE codigo = 'MIA-01');
+    DECLARE @PCiber INT = (SELECT id FROM programas WHERE codigo = 'MCG-01');
+    IF NOT EXISTS (SELECT 1 FROM tutores_programa WHERE tutor_id = @TutIA AND programa_id = @PIA)
+        INSERT INTO tutores_programa (tutor_id, programa_id, activo) VALUES (@TutIA, @PIA, 1);
+    IF NOT EXISTS (SELECT 1 FROM tutores_programa WHERE tutor_id = @TutCiber AND programa_id = @PCiber)
+        INSERT INTO tutores_programa (tutor_id, programa_id, activo) VALUES (@TutCiber, @PCiber, 1);
 END
 GO
 

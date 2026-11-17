@@ -8,8 +8,13 @@ import CoursesPage from './pages/CoursesPage';
 import EvidencesPage from './pages/EvidencesPage';
 import ReportsPage from './pages/ReportsPage';
 import AuditPage from './pages/AuditPage';
+import AlertsPage from './pages/AlertsPage';
+import ProfilePage from './pages/ProfilePage';
+import ConfigPage from './pages/ConfigPage';
+import UsersPage from './pages/UsersPage';
 import RegisterPage from './pages/RegisterPage';
 import EnrollmentPage from './pages/EnrollmentPage';
+import ChangePasswordPage from './pages/ChangePasswordPage';
 import { api } from './services/api';
 
 export default function App() {
@@ -97,6 +102,21 @@ export default function App() {
     );
   }
 
+  // Cuenta creada o restablecida por el administrador: primero cambia la contraseña
+  if (user.debe_cambiar_password) {
+    return (
+      <ChangePasswordPage
+        user={user}
+        onChanged={() => {
+          const actualizado = { ...user, debe_cambiar_password: false };
+          localStorage.setItem('user', JSON.stringify(actualizado));
+          setUser(actualizado);
+        }}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   return (
     <div className="app-container">
       <div className="topbar">
@@ -110,6 +130,10 @@ export default function App() {
         {activeTab === 'courses' && <CoursesPage user={user} />}
         {activeTab === 'evidences' && <EvidencesPage user={user} />}
         {activeTab === 'reports' && <ReportsPage user={user} />}
+        {activeTab === 'profile' && <ProfilePage />}
+        {activeTab === 'alerts' && <AlertsPage user={user} />}
+        {activeTab === 'config' && <ConfigPage />}
+        {activeTab === 'users' && <UsersPage user={user} />}
         {activeTab === 'audit' && <AuditPage user={user} />}
       </main>
     </div>

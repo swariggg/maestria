@@ -18,6 +18,11 @@ from app.api.v1.risks import router as risks_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.audit import router as audit_router
+from app.api.v1.profile import router as profile_router
+from app.api.v1.documents import router as documents_router
+from app.api.v1.configuration import router as configuration_router
+from app.api.v1.users import router as users_router
+from app.api.v1.materials import router as materials_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,6 +67,11 @@ app.include_router(risks_router, prefix=api_v1_prefix)
 app.include_router(dashboard_router, prefix=api_v1_prefix)
 app.include_router(reports_router, prefix=api_v1_prefix)
 app.include_router(audit_router, prefix=api_v1_prefix)
+app.include_router(profile_router, prefix=api_v1_prefix)
+app.include_router(documents_router, prefix=api_v1_prefix)
+app.include_router(configuration_router, prefix=api_v1_prefix)
+app.include_router(users_router, prefix=api_v1_prefix)
+app.include_router(materials_router, prefix=api_v1_prefix)
 
 @app.get("/")
 def root():

@@ -8,7 +8,8 @@ import {
   MessageSquareWarning, 
   RefreshCw,
   Calendar,
-  FileCheck2
+  FileCheck2,
+  Video
 } from 'lucide-react';
 import { api } from '../services/api';
 import Badge from '../components/Badge';
@@ -18,6 +19,7 @@ export default function DashboardPage({ user, onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [evaluating, setEvaluating] = useState(false);
   const [evalMessage, setEvalMessage] = useState(null);
+  const [misAlertas, setMisAlertas] = useState([]);
 
   const loadStats = async () => {
     try {
@@ -33,6 +35,9 @@ export default function DashboardPage({ user, onNavigate }) {
 
   useEffect(() => {
     loadStats();
+    if (user?.rol?.codigo === 'POSTULANTE') {
+      api.getMyAlerts().then(setMisAlertas).catch(() => setMisAlertas([]));
+    }
   }, []);
 
   const handleEvaluateRisks = async () => {
@@ -219,63 +224,148 @@ export default function DashboardPage({ user, onNavigate }) {
 
       {/* Casos Críticos o Próximos Vencimientos */}
       {role === 'POSTULANTE' ? (
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3>Mis Actividades y Fechas Límite</h3>
-            <button className="btn btn-outline" onClick={() => onNavigate('evidences')}>
-              Ir a Entregar Evidencias
-            </button>
-          </div>
-          {stats?.proximos_vencimientos?.length > 0 ? (
-            <div className="table-responsive">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Actividad</th>
-                    <th>Tipo</th>
-                    <th>Ponderación</th>
-                    <th>Fecha Límite</th>
-                    <th>Días Restantes</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.proximos_vencimientos.map((act) => (
-                    <tr key={act.actividad_id}>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{act.titulo}</div>
-                        {act.curso && <small style={{ color: 'var(--text-sec)' }}>{act.curso}</small>}
-                      </td>
-                      <td><Badge type={act.tipo} /></td>
-                      <td>{act.ponderacion}%</td>
-                      <td>{act.fecha_limite}</td>
-                      <td>
-                        <strong style={{ color: act.dias_restantes < 5 ? 'var(--status-danger-text)' : 'inherit' }}>
-                          {act.vencida ? 'Vencida' : `${act.dias_restantes} días`}
-                        </strong>
-                      </td>
-                      <td>
-                        <Badge type={act.vencida ? 'ALTO' : (act.dias_restantes <= 5 ? 'MEDIO' : 'BAJO')} text={act.vencida ? 'VENCIDA' : 'EN PLAZO'} />
-                      </td>
-                    </tr>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', alignItems: 'start' }}>
+          <div style={{ gridColumn: 'span 2', minWidth: 0 }}>
+            {stats?.inscripciones?.length > 1 && (
+              <div className="card" style={{ marginBottom: '24px' }}>
+                <h3 style={{ marginBottom: '12px' }}>Mis programas</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                  {stats.inscripciones.map((i) => (
+                    <div key={i.inscripcion_id} style={{ padding: '12px 14px', borderRadius: '14px', background: 'var(--surface-muted)', border: '1px solid var(--border-light)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                        <strong>{i.programa}</strong>
+                        <Badge type={i.estado} />
+                      </div>
+                      <small style={{ color: 'var(--text-sec)' }}>{i.convocatoria} · Avance {i.porcentaje}%</small>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
+            )}
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3>Mis Actividades y Fechas Límite</h3>
+              <button className="btn btn-outline" onClick={() => onNavigate('evidences')}>
+                Ir a Entregar Evidencias
+              </button>
             </div>
-          ) : (
-            stats?.total_postulantes === 0 ? (
-              <div>
-                <p style={{ color: 'var(--text-sec)', marginBottom: '12px' }}>
-                  Aún no está inscrito en ninguna convocatoria de maestría.
-                </p>
-                <button className="btn btn-primary" onClick={() => onNavigate('enrollment')}>
-                  Ir a Inscripción
-                </button>
+            {stats?.proximos_vencimientos?.length > 0 ? (
+              <div className="table-responsive">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Actividad</th>
+                      <th>Tipo</th>
+                      <th>Ponderación</th>
+                      <th>Fecha Límite</th>
+                      <th>Días Restantes</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.proximos_vencimientos.map((act) => (
+                      <tr key={`${act.inscripcion_id}-${act.actividad_id}`}>
+                        <td>
+                          <div style={{ fontWeight: 600 }}>{act.titulo}</div>
+                          {act.curso && <small style={{ color: 'var(--text-sec)' }}>{act.curso}{stats.inscripciones?.length > 1 ? ` · ${act.programa}` : ''}</small>}
+                        </td>
+                        <td><Badge type={act.tipo} /></td>
+                        <td>{act.ponderacion}%</td>
+                        <td>{act.fecha_limite}</td>
+                        <td>
+                          <strong style={{ color: act.dias_restantes < 5 ? 'var(--status-danger-text)' : 'inherit' }}>
+                            {act.vencida ? 'Vencida' : `${act.dias_restantes} días`}
+                          </strong>
+                        </td>
+                        <td>
+                          {act.estado_entrega === 'APROBADO' ? (
+                            <Badge type="APROBADO" text="APROBADA" />
+                          ) : act.estado_entrega === 'REQUIERE_CORRECCION' ? (
+                          <Badge type="MEDIO" text="CORREGIR" />
+                        ) : act.estado_entrega === 'ENTREGADO' ? (
+                            <Badge type="BAJO" text="ENTREGADA" />
+                          ) : (
+                            <Badge type={act.vencida ? 'ALTO' : (act.dias_restantes <= 5 ? 'MEDIO' : 'BAJO')} text={act.vencida ? 'VENCIDA' : 'EN PLAZO'} />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : (
-              <p style={{ color: 'var(--text-sec)' }}>No tiene actividades pendientes en este momento.</p>
-            )
-          )}
+              stats?.total_postulantes === 0 ? (
+                <div>
+                  <p style={{ color: 'var(--text-sec)', marginBottom: '12px' }}>
+                    Aún no está inscrito en ninguna convocatoria de maestría.
+                  </p>
+                  <button className="btn btn-primary" onClick={() => onNavigate('enrollment')}>
+                    Ir a Inscripción
+                  </button>
+                </div>
+              ) : (
+                <p style={{ color: 'var(--text-sec)' }}>No tiene actividades pendientes en este momento.</p>
+              )
+            )}
+          </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+            <div className="card">
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <Calendar size={18} color="var(--color-navy)" />
+                <span>Calendario</span>
+              </h3>
+              {(() => {
+                const hoy = new Date().toISOString().slice(0, 10);
+                const proximos = (stats?.calendario || []).filter((e) => e.fecha.slice(0, 10) >= hoy).slice(0, 8);
+                if (proximos.length === 0) return <small>No hay entregas ni sesiones próximas.</small>;
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {proximos.map((e, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                        <div style={{ minWidth: '48px', textAlign: 'center', padding: '6px 4px', borderRadius: '10px', background: e.tipo === 'SESION' ? 'var(--color-sec)' : 'var(--surface-muted)' }}>
+                          <div style={{ fontWeight: 700, fontSize: '1.05rem', lineHeight: 1 }}>{e.fecha.slice(8, 10)}</div>
+                          <small style={{ fontSize: '0.7rem' }}>{new Date(`${e.fecha.slice(0, 10)}T00:00:00`).toLocaleDateString('es-EC', { month: 'short' })}</small>
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {e.tipo === 'SESION' && <Video size={14} />}
+                            {e.titulo}
+                          </div>
+                          <small style={{ color: 'var(--text-sec)', display: 'block' }}>
+                            {e.tipo === 'SESION' ? 'Sesión' : 'Entrega'} · {e.fecha.slice(11, 16)} · {e.curso}
+                          </small>
+                          {e.tipo === 'SESION' && e.url && (
+                            <a href={e.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>Entrar a la sesión</a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="card">
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <AlertTriangle size={18} color="var(--status-warning-text)" />
+                <span>Avisos</span>
+              </h3>
+              {misAlertas.filter((a) => !a.resuelta).length === 0 ? (
+                <small>Va al día. No tiene avisos pendientes.</small>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {misAlertas.filter((a) => !a.resuelta).map((a) => (
+                    <div key={a.id} style={{ padding: '10px 12px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                      <Badge type={a.nivel_riesgo} />
+                      <small style={{ display: 'block', marginTop: '6px' }}>{a.motivo_detallado}</small>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       ) : (
         <div className="card">

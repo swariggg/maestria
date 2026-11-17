@@ -86,7 +86,16 @@ def list_applicants(
             motivo_riesgo=insc.motivo_riesgo,
             fecha_inscripcion=insc.fecha_inscripcion,
             tutor_nombre=tutor_nombre,
-            porcentaje_avance=pct_avance
+            tutor_id=tutor_asig.tutor_id if tutor_asig else None,
+            programa_id=prog.id,
+            porcentaje_avance=pct_avance,
+            estado_pago=insc.estado_pago or "PENDIENTE",
+            tiene_beca=bool(insc.tiene_beca),
+            porcentaje_beca=insc.porcentaje_beca,
+            requiere_adaptaciones=bool(insc.requiere_adaptaciones),
+            nota_adaptaciones=insc.nota_adaptaciones,
+            retiro_solicitado=bool(insc.retiro_solicitado_en),
+            motivo_retiro=insc.motivo_retiro,
         ))
 
     return resultados

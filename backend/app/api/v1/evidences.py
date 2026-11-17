@@ -15,11 +15,36 @@ from app.models.entities import (
 )
 from app.schemas.pydantic_models import EvidenceOut
 from app.services.risk_engine import evaluate_applicant_risk
+from app.services.process_emails import correo_evidencia_cargada
 from app.services.progress_service import (
     asignacion_para_actividad, inscripcion_cerrada, CONV_PERMITE_ENTREGAS, mensaje_convocatoria
 )
 
 router = APIRouter(prefix="/evidencias", tags=["Evidencias y Archivos"])
+
+
+def estado_envio(actividad: ActividadCurso, entrega, ahora: datetime = None) -> dict:
+    """
+    Si el postulante puede enviar ahora y por qué no. No hay entregas tardías: fuera de las fechas
+    de la actividad solo se admite corregir una versión que el evaluador devolvió para corrección.
+    """
+    ahora = ahora or datetime.now()
+    usados = entrega.numero_versiones if entrega else 0
+    calificados = sum(1 for v in entrega.versiones if v.evaluacion) if entrega else 0
+    restantes = max(actividad.max_reenvios - usados, 0)
+    motivo = None
+    if entrega and entrega.estado_entrega == "APROBADO":
+        motivo = "La evidencia ya fue aprobada."
+    elif restantes == 0:
+        motivo = f"Ya usó los {actividad.max_reenvios} intentos de esta actividad."
+    elif ahora < actividad.fecha_apertura:
+        motivo = f"La actividad abre el {actividad.fecha_apertura:%d/%m/%Y %H:%M}."
+    elif ahora > actividad.fecha_limite and not (entrega and entrega.estado_entrega == "REQUIERE_CORRECCION"):
+        motivo = f"El plazo venció el {actividad.fecha_limite:%d/%m/%Y %H:%M}. No se aceptan entregas tardías."
+    return {
+        "puede_enviar": motivo is None, "motivo_bloqueo": motivo, "max_intentos": actividad.max_reenvios,
+        "intentos_usados": usados, "intentos_calificados": calificados, "intentos_restantes": restantes,
+    }
 
 @router.get("/actividad/{actividad_id}/entrega")
 def get_applicant_evidence(
@@ -50,7 +75,7 @@ def get_applicant_evidence(
     ).first()
 
     if not entrega:
-        return {"estado_entrega": "PENDIENTE", "numero_versiones": 0, "versiones": []}
+        return {"estado_entrega": "PENDIENTE", "numero_versiones": 0, "versiones": [], **estado_envio(actividad, None)}
 
     versiones = []
     for v in entrega.versiones:
@@ -62,8 +87,15 @@ def get_applicant_evidence(
                 "resultado": v.evaluacion.resultado,
                 "observaciones": v.evaluacion.observaciones,
                 "recomendaciones": v.evaluacion.recomendaciones,
+                "evaluador_id": v.evaluacion.evaluador_id,
                 "evaluador_nombre": v.evaluacion.evaluador.nombre_completo,
-                "fecha_evaluacion": v.evaluacion.fecha_evaluacion
+                "fecha_evaluacion": v.evaluacion.fecha_evaluacion,
+                "motivo_recalificacion": v.evaluacion.motivo_recalificacion,
+                "puntajes": [
+                    {"criterio_id": p.criterio_id, "criterio": p.criterio.criterio, "puntaje": float(p.puntaje),
+                     "puntaje_maximo": float(p.criterio.puntaje_maximo)}
+                    for p in v.evaluacion.puntajes
+                ],
             }
         versiones.append({
             "id": v.id,
@@ -81,7 +113,8 @@ def get_applicant_evidence(
         "actividad_titulo": entrega.actividad.titulo,
         "estado_entrega": entrega.estado_entrega,
         "numero_versiones": entrega.numero_versiones,
-        "versiones": versiones
+        "versiones": versiones,
+        **estado_envio(actividad, entrega),
     }
 
 @router.post("/upload")
@@ -119,13 +152,9 @@ async def upload_evidence(
         EntregaEvidencia.actividad_id == actividad.id
     ).first()
 
-    if entrega and entrega.estado_entrega == "APROBADO":
-        raise HTTPException(status_code=400, detail="Esta evidencia ya fue aprobada y no se puede reemplazar.")
-    if entrega and entrega.numero_versiones >= actividad.max_reenvios:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Se ha alcanzado el límite de {actividad.max_reenvios} reenvíos para esta actividad."
-        )
+    envio = estado_envio(actividad, entrega)
+    if not envio["puede_enviar"]:
+        raise HTTPException(status_code=400, detail=envio["motivo_bloqueo"])
 
     # Validar extensión
     ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
@@ -207,12 +236,15 @@ async def upload_evidence(
 
     # La entrega puede cerrar alertas de inactividad o de actividad vencida
     evaluate_applicant_risk(db, inscripcion.id)
+    db.refresh(version)
+    correo_evidencia_cargada(db, inscripcion, version)
 
     return {
         "mensaje": "Evidencia cargada con éxito.",
         "version_id": version.id,
         "numero_version": nueva_version_num,
-        "es_tardia": es_tardia
+        "es_tardia": es_tardia,
+        "intentos_restantes": max(actividad.max_reenvios - nueva_version_num, 0),
     }
 
 @router.get("/version/{version_id}/download")
