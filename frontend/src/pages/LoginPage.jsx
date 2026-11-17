@@ -34,7 +34,7 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
     <div className="auth-screen">
       <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '36px' }}>
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <img src="/uide-logo.png" alt="UIDE - Universidad Internacional del Ecuador" style={{ height: '64px', marginBottom: '18px' }} />
+          <img src="/uide-logo.svg" alt="UIDE - Universidad Internacional del Ecuador" style={{ height: '64px', marginBottom: '18px' }} />
           <h1>APP - Maestría</h1>
           <p style={{ color: 'var(--text-sec)', marginTop: '4px' }}>
             Universidad Internacional del Ecuador (UIDE)

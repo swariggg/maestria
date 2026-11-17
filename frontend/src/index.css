@@ -1,20 +1,23 @@
 :root {
-  /* Paleta institucional: burdeos, azul marino, azul acero y crema */
-  --color-burgundy: #490B1A;
-  --color-navy: #142841;
-  --color-navy-soft: #1F3A5C;
-  --color-steel: #798DA6;
-  --color-cream: #E5DED2;
-  --color-wine: #7A1430;
-  --color-uide: #910047;
-  --color-gold: #EAAA01;
-  --tint-red: #F6E6EA;
+  /* Colores institucionales del manual de marca UIDE (sección 07) */
+  --color-uide: #910048;       /* Pantone 221 C, color principal */
+  --color-navy: #002D72;       /* Pantone 288 C */
+  --color-gold: #EAAA00;       /* Pantone 124 C */
 
-  --bg-main: #F3F1EC;
+  /* Tonos derivados de los tres colores oficiales (solo para estados y fondos) */
+  --color-burgundy: #6E0037;
+  --color-wine: #910048;
+  --color-navy-soft: #1A4488;
+  --color-steel: #7F8FA9;
+  --color-cream: #FBF1D6;
+  --tint-red: #F7E6EE;
+  --tint-blue: #E6ECF5;
+  --tint-cream: #FBF1D6;
+
+  /* Fondos neutros, como las láminas del manual (blanco y gris claro) */
+  --bg-main: #F2F2F2;
   --surface-card: #FFFFFF;
-  --surface-muted: #F7F5F1;
-  --tint-blue: #E7ECF2;
-  --tint-cream: #F2EDE4;
+  --surface-muted: #F7F7F7;
 
   /* Roles de color usados por los componentes */
   --color-primary: var(--color-navy);
@@ -22,40 +25,41 @@
   --color-primary-text: #FFFFFF;
 
   --color-sec: var(--tint-blue);
-  --color-sec-hover: #D9E0EA;
+  --color-sec-hover: #D5DFEE;
   --color-sec-text: var(--color-navy);
 
   --color-comp: var(--tint-cream);
-  --color-comp-hover: var(--color-cream);
+  --color-comp-hover: #F6E3AE;
   --color-comp-text: var(--color-burgundy);
 
-  --text-main: #142841;
-  --text-sec: #5F6F85;
-  --border-light: #E7E4DE;
-  --border-focus: var(--color-wine);
+  --text-main: #1E2533;
+  --text-sec: #5A6475;
+  --border-light: #E3E3E3;
+  --border-focus: var(--color-uide);
 
-  /* Semántica de estados (semáforo armonizado con la paleta) */
-  --status-success-bg: #E3ECE6;
-  --status-success-text: #2F5D46;
+  /* Semántica de estados */
+  --status-success-bg: #E3EFE8;
+  --status-success-text: #23603F;
   --status-pending-bg: var(--tint-blue);
   --status-pending-text: var(--color-navy);
-  --status-warning-bg: #F4E8D3;
-  --status-warning-text: #7A4E12;
-  --status-danger-bg: #F3E2E5;
+  --status-warning-bg: #FBF0D2;
+  --status-warning-text: #7A5300;
+  --status-danger-bg: var(--tint-red);
   --status-danger-text: var(--color-burgundy);
-  --status-danger-border: #E5C3CA;
+  --status-danger-border: #EAC2D4;
 
   /* Formas y sombras */
   --radius-card: 24px;
   --radius-btn: 999px;
   --radius-input: 999px;
   --radius-field: 16px;
-  --shadow-soft: 0 8px 24px rgba(20, 40, 65, 0.06);
-  --shadow-hover: 0 12px 32px rgba(20, 40, 65, 0.10);
-  --gradient-hero: linear-gradient(135deg, #142841 0%, #1F3A5C 60%, #2E4A6E 100%);
-  --gradient-wine: linear-gradient(135deg, #490B1A 0%, #7A1430 55%, #910047 100%);
+  --shadow-soft: 0 8px 24px rgba(0, 45, 114, 0.06);
+  --shadow-hover: 0 12px 32px rgba(0, 45, 114, 0.10);
+  --gradient-hero: linear-gradient(135deg, #002D72 0%, #0B3A86 60%, #1A4488 100%);
+  --gradient-wine: linear-gradient(135deg, #6E0037 0%, #910048 100%);
 
-  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Tipografía del manual: Source Sans */
+  --font-family: 'Source Sans 3', 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 * {
@@ -63,6 +67,8 @@
   margin: 0;
   padding: 0;
 }
+
+button, input, select, textarea { font-family: inherit; }
 
 body {
   font-family: var(--font-family);
@@ -74,10 +80,10 @@ body {
 }
 
 /* Tipografía */
-h1 { font-size: clamp(1.5rem, 2.5vw, 1.9rem); font-weight: 600; letter-spacing: -0.02em; color: var(--text-main); line-height: 1.2; }
-h2 { font-size: clamp(1.2rem, 2vw, 1.45rem); font-weight: 600; letter-spacing: -0.01em; color: var(--text-main); }
-h3 { font-size: 1.05rem; font-weight: 600; color: var(--text-main); }
-p { font-size: 0.925rem; color: var(--text-main); }
+h1 { font-size: clamp(1.6rem, 2.6vw, 2rem); font-weight: 700; letter-spacing: -0.01em; color: var(--color-uide); line-height: 1.2; }
+h2 { font-size: clamp(1.25rem, 2vw, 1.5rem); font-weight: 700; letter-spacing: -0.01em; color: var(--text-main); }
+h3 { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+p { font-size: 0.95rem; color: var(--text-main); }
 small { font-size: 0.8rem; color: var(--text-sec); }
 code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; border-radius: 6px; }
 
@@ -97,6 +103,7 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-soft);
   border-top: 4px solid var(--color-uide);
+  box-shadow: var(--shadow-soft), inset 0 1px 0 var(--color-gold);
 }
 
 .header {
@@ -163,7 +170,7 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
 
 /* Tarjeta con tinte suave (estilo "resumen de salud") */
 .card-tint {
-  background: linear-gradient(180deg, var(--tint-blue) 0%, #F4F6F9 100%);
+  background: linear-gradient(180deg, var(--tint-blue) 0%, #F5F7FB 100%);
   box-shadow: none;
 }
 
@@ -185,6 +192,14 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
   line-height: 1.4;
 }
 .notice-warning svg { flex-shrink: 0; margin-top: 1px; }
+.notice-danger, .notice-success {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.notice-danger { background: var(--status-danger-bg); color: var(--status-danger-text); }
+.notice-success { background: var(--status-success-bg); color: var(--status-success-text); }
 
 /* Iconos de dos tonos: trazo oscuro y relleno dorado, como los iconos institucionales */
 .duo svg {
@@ -200,7 +215,7 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
   align-items: center;
   justify-content: center;
   background: var(--surface-card);
-  box-shadow: 0 4px 12px rgba(20, 40, 65, 0.10);
+  box-shadow: 0 4px 12px rgba(0, 45, 114, 0.10);
   flex-shrink: 0;
 }
 .card-hero .kpi-icon {
@@ -242,8 +257,8 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
   justify-content: center;
   gap: 8px;
   font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   padding: 11px 20px;
   border-radius: var(--radius-btn);
   border: none;
@@ -263,11 +278,11 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
 .btn-primary {
   background: var(--gradient-wine);
   color: #FFFFFF;
-  box-shadow: 0 6px 16px rgba(73, 11, 26, 0.25);
+  box-shadow: 0 6px 16px rgba(110, 0, 55, 0.22);
 }
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(73, 11, 26, 0.35);
+  box-shadow: 0 8px 20px rgba(110, 0, 55, 0.32);
 }
 
 .btn-secondary {
@@ -314,7 +329,7 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
 .form-input, .form-select, .form-textarea {
   width: 100%;
   padding: 12px 18px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-family: inherit;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-input);
@@ -326,12 +341,12 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
   border-radius: var(--radius-field);
 }
 .form-input::placeholder, .form-textarea::placeholder {
-  color: #9AA6B6;
+  color: #8A93A3;
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 4px rgba(122, 20, 48, 0.12);
+  box-shadow: 0 0 0 4px rgba(145, 0, 72, 0.14);
 }
 
 /* Tablas */
@@ -350,8 +365,8 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
 .table th {
   background-color: var(--surface-muted);
   color: var(--text-sec);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 14px 18px;
@@ -400,8 +415,8 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
   cursor: pointer;
   text-decoration: none;
   font-family: inherit;
-  font-weight: 500;
-  font-size: 0.9rem;
+  font-weight: 600;
+  font-size: 0.95rem;
   border-radius: 999px;
   transition: all 0.2s ease;
 }
@@ -413,8 +428,8 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
 .nav-link.active:hover {
   color: #FFFFFF;
   background: var(--gradient-wine);
-  font-weight: 600;
-  box-shadow: 0 6px 16px rgba(73, 11, 26, 0.25);
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(110, 0, 55, 0.22);
 }
 .nav-link.active svg {
   stroke: #FFFFFF;
@@ -424,7 +439,7 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(20, 40, 65, 0.45);
+  background-color: rgba(0, 45, 114, 0.40);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -439,11 +454,12 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 24px 48px rgba(20, 40, 65, 0.18);
+  box-shadow: 0 24px 48px rgba(0, 45, 114, 0.18);
   padding: 28px;
 }
+.modal-box.modal-wide { max-width: 860px; }
 
-/* Pantallas de acceso: franja superior azul marino como en la referencia */
+/* Pantallas de acceso: franja burdeos con el azul y la línea dorada de la portada del manual */
 .auth-screen {
   min-height: 100vh;
   display: flex;
@@ -451,8 +467,7 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
   justify-content: center;
   padding: 20px;
   background:
-    radial-gradient(circle at 85% 0%, rgba(145, 0, 71, 0.5), transparent 30%),
-    linear-gradient(180deg, var(--color-burgundy) 0%, var(--color-wine) 46%, var(--bg-main) 46%);
+    linear-gradient(180deg, var(--color-uide) 0%, var(--color-uide) 44%, var(--color-gold) 44%, var(--color-gold) calc(44% + 4px), var(--color-navy) calc(44% + 4px), var(--color-navy) calc(44% + 14px), var(--bg-main) calc(44% + 14px));
 }
 
 .spin {
@@ -487,7 +502,7 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
     background: var(--surface-card);
     border-top: none;
     border-radius: 999px;
-    box-shadow: 0 10px 30px rgba(20, 40, 65, 0.18);
+    box-shadow: 0 10px 30px rgba(0, 45, 114, 0.18);
   }
   .topnav .nav-link {
     padding: 10px 14px;

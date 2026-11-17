@@ -16,7 +16,7 @@ export default function Header({ user, onLogout }) {
   return (
     <header className="header">
       <div className="brand">
-        <img src="/uide-logo.png" alt="UIDE - Universidad Internacional del Ecuador" className="brand-logo" />
+        <img src="/uide-logo.svg" alt="UIDE - Universidad Internacional del Ecuador" className="brand-logo" />
         <div className="brand-divider" />
         <div>
           <small style={{ display: 'block', lineHeight: 1.2 }}>Cursos Preparatorios de Posgrado</small>
