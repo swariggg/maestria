@@ -130,7 +130,7 @@ export default function App() {
         {activeTab === 'evidences' && <EvidencesPage user={user} />}
         {activeTab === 'certificates' && <CertificatesPage user={user} />}
         {activeTab === 'reports' && <ReportsPage user={user} />}
-        {activeTab === 'profile' && <ProfilePage />}
+        {activeTab === 'profile' && <ProfilePage user={user} />}
         {activeTab === 'alerts' && <AlertsPage user={user} />}
         {activeTab === 'config' && <ConfigPage />}
         {activeTab === 'users' && <UsersPage user={user} />}

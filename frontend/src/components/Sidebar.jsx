@@ -20,7 +20,7 @@ export default function Sidebar({ user, activeTab, setActiveTab }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
     { id: 'enrollment', label: 'Inscripción', icon: ClipboardList, roles: ['POSTULANTE'] },
-    { id: 'profile', label: 'Mi Perfil', icon: UserRound, roles: ['POSTULANTE'] },
+    { id: 'profile', label: 'Mi Perfil', icon: UserRound, roles: ['POSTULANTE', 'TUTOR'] },
     { id: 'applicants', label: 'Postulantes', icon: Users, roles: ['ADMIN', 'COORDINADOR', 'TUTOR'] },
     { id: 'courses', label: 'Programas y Cursos', icon: BookOpen, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
     { id: 'alerts', label: 'Alertas', icon: ShieldAlert, roles: ['ADMIN', 'COORDINADOR', 'TUTOR'] },

@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { UserRound, FolderOpen, Save, LogOut, Award } from 'lucide-react';
+import { UserRound, FolderOpen, Save, LogOut, Award, Link2 } from 'lucide-react';
 import { api } from '../services/api';
 import Badge from '../components/Badge';
 import DocumentsPanel from '../components/DocumentsPanel';
+import ProfilePhoto from '../components/ProfilePhoto';
+import TutorProfile from '../components/TutorProfile';
 
 const CERRADAS = ['APROBADO', 'NO_APROBADO', 'RETIRADO'];
 
 const CAMPOS = [
+  { campo: 'nombre_completo', label: 'Nombres y apellidos', placeholder: 'María José Pérez López', ancho: true },
+  { campo: 'cedula', label: 'Cédula', placeholder: '1712345678' },
+  { campo: 'fecha_nacimiento', label: 'Fecha de nacimiento', tipo: 'date' },
   { campo: 'telefono', label: 'Teléfono celular', placeholder: '0991234567' },
   { campo: 'direccion', label: 'Dirección', placeholder: 'Av. Simón Bolívar y Calle 1' },
   { campo: 'ciudad', label: 'Ciudad', placeholder: 'Quito' },
@@ -17,7 +22,12 @@ const CAMPOS = [
   { campo: 'telefono_emergencia', label: 'Teléfono de emergencia', placeholder: '0987654321' },
 ];
 
-export default function ProfilePage() {
+export default function ProfilePage({ user }) {
+  if (user?.rol?.codigo === 'TUTOR') return <TutorProfile user={user} />;
+  return <ApplicantProfile user={user} />;
+}
+
+function ApplicantProfile({ user }) {
   const [form, setForm] = useState(null);
   const [inscripciones, setInscripciones] = useState([]);
   const [inscripcionId, setInscripcionId] = useState(null);
@@ -50,9 +60,14 @@ export default function ProfilePage() {
     setMessage(null);
     try {
       const payload = {};
-      [...CAMPOS.map((c) => c.campo), 'registrado_senescyt'].forEach((c) => { payload[c] = form[c] === '' ? null : form[c]; });
+      [...CAMPOS.map((c) => c.campo), 'registrado_senescyt', 'enlaces'].forEach((c) => { payload[c] = form[c] === '' ? null : form[c]; });
       const actualizado = await api.updateMyProfile(payload);
       setForm(actualizado);
+      if (user && (actualizado.nombre_completo !== user.nombre_completo || actualizado.cedula !== user.cedula)) {
+        try {
+          localStorage.setItem('user', JSON.stringify({ ...user, nombre_completo: actualizado.nombre_completo, cedula: actualizado.cedula }));
+        } catch { /* sin almacenamiento local */ }
+      }
       setMessage({ type: 'success', text: actualizado.perfil_completo ? 'Perfil guardado. Sus datos están completos.' : 'Perfil guardado. Aún faltan algunos datos.' });
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
@@ -115,9 +130,14 @@ export default function ProfilePage() {
             <Badge type={form.perfil_completo ? 'APROBADO' : 'MEDIO'} text={form.perfil_completo ? 'Completo' : 'Incompleto'} />
           </div>
 
-          <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--surface-muted)', marginBottom: '16px', fontSize: '0.875rem' }}>
-            <strong>{form.nombre_completo}</strong>
-            <div style={{ color: 'var(--text-sec)' }}>CI: {form.cedula} · {form.email}</div>
+          <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--surface-muted)', marginBottom: '16px', fontSize: '0.875rem', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <ProfilePhoto usuarioId={user?.id} nombre={form.nombre_completo} tieneFoto={form.tiene_foto} editable
+              onChange={(tiene) => setForm((prev) => ({ ...prev, tiene_foto: tiene }))} />
+            <div>
+              <strong>{form.nombre_completo}</strong>
+              <div style={{ color: 'var(--text-sec)' }}>CI: {form.cedula} · {form.email}</div>
+              <small style={{ color: 'var(--text-sec)' }}>Su foto solo se ve aquí, en su perfil.</small>
+            </div>
           </div>
 
           {message && (
@@ -128,12 +148,18 @@ export default function ProfilePage() {
 
           <form onSubmit={handleSave}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0 12px' }}>
-              {CAMPOS.map(({ campo, label, placeholder }) => (
-                <div className="form-group" key={campo}>
+              {CAMPOS.map(({ campo, label, placeholder, tipo, ancho }) => (
+                <div className="form-group" key={campo} style={ancho ? { gridColumn: '1 / -1' } : undefined}>
                   <label className="form-label">{label}</label>
-                  <input className="form-input" value={form[campo] || ''} placeholder={placeholder} onChange={setField(campo)} />
+                  <input className="form-input" type={tipo || 'text'} value={form[campo] || ''} placeholder={placeholder} onChange={setField(campo)} />
                 </div>
               ))}
+            </div>
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Link2 size={14} /> Enlaces (LinkedIn, portafolio...), uno por línea
+              </label>
+              <textarea className="form-input" rows={2} value={form.enlaces || ''} placeholder="https://www.linkedin.com/in/su-perfil" onChange={setField('enlaces')} />
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem', margin: '4px 0 16px' }}>
               <input type="checkbox" checked={!!form.registrado_senescyt} onChange={setField('registrado_senescyt')} />

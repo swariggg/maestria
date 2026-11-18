@@ -377,4 +377,13 @@ CROSS JOIN (VALUES
 WHERE NOT EXISTS (SELECT 1 FROM plantillas_actividad x WHERE x.programa_id = p.id AND x.titulo = t.titulo);
 GO
 
+-- 21. Datos de contacto de los tutores de ejemplo y fecha de nacimiento de los postulantes
+UPDATE t SET t.correo_outlook = u.email, t.usuario_teams = u.email,
+             t.horario_atencion = N'Lunes y miércoles de 18:00 a 20:00',
+             t.presentacion = N'Le acompañaré durante el curso preparatorio. Escríbame por Teams o por correo si tiene dudas con las actividades.'
+FROM tutores t JOIN usuarios u ON u.id = t.usuario_id
+WHERE t.correo_outlook IS NULL;
+UPDATE perfiles_postulante SET fecha_nacimiento = '1995-05-14' WHERE fecha_nacimiento IS NULL;
+GO
+
 PRINT N'Demostración completa y configurada al 100% en app_maestria.';

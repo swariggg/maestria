@@ -749,4 +749,23 @@ IF COL_LENGTH('notificaciones_cola', 'fecha_lectura') IS NULL
     ALTER TABLE notificaciones_cola ADD fecha_lectura DATETIME2 NULL;
 GO
 
+-- 37. Perfil: foto, fecha de nacimiento, enlaces y datos de contacto del tutor
+IF COL_LENGTH('usuarios', 'foto_ruta') IS NULL
+    ALTER TABLE usuarios ADD foto_ruta NVARCHAR(500) NULL;
+IF COL_LENGTH('usuarios', 'foto_mime') IS NULL
+    ALTER TABLE usuarios ADD foto_mime NVARCHAR(50) NULL;
+IF COL_LENGTH('perfiles_postulante', 'fecha_nacimiento') IS NULL
+    ALTER TABLE perfiles_postulante ADD fecha_nacimiento DATE NULL;
+IF COL_LENGTH('perfiles_postulante', 'enlaces') IS NULL
+    ALTER TABLE perfiles_postulante ADD enlaces NVARCHAR(500) NULL;
+IF COL_LENGTH('tutores', 'correo_outlook') IS NULL
+    ALTER TABLE tutores ADD correo_outlook NVARCHAR(150) NULL;
+IF COL_LENGTH('tutores', 'usuario_teams') IS NULL
+    ALTER TABLE tutores ADD usuario_teams NVARCHAR(150) NULL;
+IF COL_LENGTH('tutores', 'horario_atencion') IS NULL
+    ALTER TABLE tutores ADD horario_atencion NVARCHAR(300) NULL;
+IF COL_LENGTH('tutores', 'presentacion') IS NULL
+    ALTER TABLE tutores ADD presentacion NVARCHAR(1000) NULL;
+GO
+
 PRINT N'Esquema completo de APP - Maestría creado exitosamente en app_maestria.';

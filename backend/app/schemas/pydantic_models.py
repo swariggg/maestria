@@ -411,6 +411,10 @@ class DashboardStats(BaseModel):
 
 # --- PERFIL Y DOCUMENTOS DEL POSTULANTE ---
 class ProfileUpdate(BaseModel):
+    nombre_completo: Optional[str] = Field(None, max_length=200)
+    cedula: Optional[str] = Field(None, max_length=20)
+    fecha_nacimiento: Optional[date] = None
+    enlaces: Optional[str] = Field(None, max_length=500)
     telefono: Optional[str] = Field(None, max_length=30)
     direccion: Optional[str] = Field(None, max_length=255)
     ciudad: Optional[str] = Field(None, max_length=100)
@@ -420,6 +424,14 @@ class ProfileUpdate(BaseModel):
     registrado_senescyt: bool = True
     contacto_emergencia: Optional[str] = Field(None, max_length=150)
     telefono_emergencia: Optional[str] = Field(None, max_length=30)
+
+class TutorProfileUpdate(BaseModel):
+    telefono: Optional[str] = Field(None, max_length=30)
+    especialidad: str = Field(min_length=2, max_length=150)
+    correo_outlook: Optional[str] = Field(None, max_length=150)
+    usuario_teams: Optional[str] = Field(None, max_length=150)
+    horario_atencion: Optional[str] = Field(None, max_length=300)
+    presentacion: Optional[str] = Field(None, max_length=1000)
 
 class RequisitoCreate(BaseModel):
     convocatoria_id: int

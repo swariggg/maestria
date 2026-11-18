@@ -30,6 +30,8 @@ class Usuario(Base):
     fecha_bloqueo = Column(DateTime, nullable=True)
     debe_cambiar_password = Column(Boolean, default=False)
     acepto_datos_en = Column(DateTime, nullable=True)
+    foto_ruta = Column(String(500), nullable=True)
+    foto_mime = Column(String(50), nullable=True)
     creado_en = Column(DateTime, default=datetime.utcnow)
     actualizado_en = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -185,6 +187,8 @@ class PerfilPostulante(Base):
     registrado_senescyt = Column(Boolean, default=True)
     contacto_emergencia = Column(String(150), nullable=True)
     telefono_emergencia = Column(String(30), nullable=True)
+    fecha_nacimiento = Column(Date, nullable=True)
+    enlaces = Column(String(500), nullable=True)  # LinkedIn, portafolio, etc. (uno por línea)
 
     usuario = relationship("Usuario", back_populates="perfil")
 
@@ -264,6 +268,11 @@ class Tutor(Base):
     especialidad = Column(String(150), nullable=False)
     max_postulantes = Column(Integer, default=30)
     activo = Column(Boolean, default=True)
+    # Datos de contacto que ve el postulante en la portada del curso
+    correo_outlook = Column(String(150), nullable=True)
+    usuario_teams = Column(String(150), nullable=True)
+    horario_atencion = Column(String(300), nullable=True)
+    presentacion = Column(String(1000), nullable=True)
 
     usuario = relationship("Usuario", back_populates="tutor_perfil")
 

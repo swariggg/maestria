@@ -7,6 +7,7 @@ import CourseTile from '../components/visual/CourseTile';
 import Modal from '../components/Modal';
 import RequirementsManager from '../components/RequirementsManager';
 import { RubricEditor, MaterialsPanel } from '../components/CourseExtras';
+import TutorCard from '../components/TutorCard';
 
 const FLUJO_ESTADOS = ['PLANIFICADA', 'ABIERTA', 'EN_CURSO', 'CERRADA', 'FINALIZADA'];
 const ETIQUETA_ESTADO = {
@@ -780,6 +781,8 @@ export default function CoursesPage({ user }) {
           )}
         </div>
       </div>
+
+      {selectedCourse && <TutorCard cursoId={selectedCourse.id} />}
 
       {selectedCourse && (
         <MaterialsPanel curso={selectedCourse} />
