@@ -85,8 +85,9 @@ def _condiciones_activas(db: Session, inscripcion: Inscripcion, ahora: datetime)
         agregar("CONTACTO_SIN_RESPUESTA", "ALTO",
                 f"Acumulación de {intentos_limite} intentos de contacto consecutivos del tutor sin respuesta del postulante.")
 
-    # 3. Actividades vencidas sin evidencia (alerta) o próximas a vencer (solo aviso)
+    # 3. Actividades vencidas sin evidencia (alerta, riesgo alto) o próximas a vencer (riesgo medio, sin alerta)
     dias_por_vencer = parametros.get_int(db, "DIAS_PROXIMA_A_VENCER")
+    por_vencer = []
     for asig in asignaciones_del_postulante(db, inscripcion):
         actividades = db.query(ActividadCurso).filter(
             ActividadCurso.curso_id == asig.curso_id,
@@ -102,8 +103,14 @@ def _condiciones_activas(db: Session, inscripcion: Inscripcion, ahora: datetime)
             if ahora > act.fecha_limite:
                 agregar("SIN_EVIDENCIA", "ALTO",
                         f"Actividad '{act.titulo}' ({asig.curso.codigo}) vencida sin evidencia aprobada.")
-            elif (act.fecha_limite - ahora).days <= dias_por_vencer:
-                motivos.append(f"Actividad '{act.titulo}' próxima a vencer en {(act.fecha_limite - ahora).days} días.")
+            elif act.fecha_apertura <= ahora and (act.fecha_limite - ahora).days <= dias_por_vencer:
+                dias = (act.fecha_limite.date() - ahora.date()).days
+                por_vencer.append(act.titulo)
+                cuando = "hoy" if dias < 1 else "mañana" if dias == 1 else f"en {dias} días"
+                motivos.append(f"Actividad '{act.titulo}' ({asig.curso.codigo}) sin entregar, vence {cuando}.")
+    if por_vencer:
+        # No abre alerta (avisarían a diario), pero pinta el semáforo en amarillo
+        condiciones[("VENCIMIENTO_PROXIMO", "")] = ("VENCIMIENTO_PROXIMO", "MEDIO", None)
 
     # 4. Bajo avance frente a lo esperado según el calendario del preparatorio
     esperado = avance_esperado(inscripcion, ahora)
@@ -166,10 +173,13 @@ def evaluate_applicant_risk(db: Session, inscripcion_id: int, ahora: datetime = 
         if motivo_suprimido in motivos:
             motivos.remove(motivo_suprimido)
 
-    # El nivel sale solo de las alertas; "por vencer" es un aviso que no cambia el riesgo
+    # Semáforo: ALTO (rojo) inactividad, sin respuesta o vencidas sin entregar;
+    # MEDIO (amarillo) entregas por vencer, bajo avance o compromisos vencidos; BAJO (verde) al día
     nivel = "BAJO"
     for _tipo, nivel_cond, _motivo in condiciones.values():
         nivel = _subir_nivel(nivel, nivel_cond)
+    # "Por vencer" solo cambia el color; no se guarda como alerta
+    condiciones.pop(("VENCIMIENTO_PROXIMO", ""), None)
 
     # Abrir alertas nuevas y cerrar las que ya no aplican
     abiertas = db.query(AlertaRiesgo).filter(

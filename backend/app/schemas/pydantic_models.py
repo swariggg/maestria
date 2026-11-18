@@ -408,6 +408,11 @@ class DashboardStats(BaseModel):
     actividades_pendientes: int = 0
     seguimientos_totales: int = 0
     seguimientos_sin_respuesta: int = 0
+    seguimientos_con_respuesta: int = 0
+    # Reglas del semáforo (parámetros de Configuración), para explicarlas en el panel
+    regla_dias_inactividad: int = 7
+    regla_intentos_sin_respuesta: int = 2
+    regla_dias_por_vencer: int = 5
     casos_criticos: List[dict] = []
     proximos_vencimientos: List[dict] = []
     calendario: List[dict] = []

@@ -23,6 +23,7 @@ import Modal from '../components/Modal';
 import DocumentsPanel from '../components/DocumentsPanel';
 import HistoryTimeline from '../components/HistoryTimeline';
 import ApplicantSheet from '../components/ApplicantSheet';
+import { SemaforoPunto } from '../components/Semaforo';
 import { saveBlob } from '../utils/download';
 
 export default function ApplicantsPage({ user }) {
@@ -298,9 +299,9 @@ export default function ApplicantsPage({ user }) {
           <div style={{ minWidth: '160px' }}>
             <select className="form-select" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}>
               <option value="">Riesgo (Todos)</option>
-              <option value="BAJO">Riesgo Bajo</option>
-              <option value="MEDIO">Riesgo Medio</option>
-              <option value="ALTO">Riesgo Alto</option>
+              <option value="ALTO">Rojo: riesgo alto</option>
+              <option value="MEDIO">Amarillo: riesgo medio</option>
+              <option value="BAJO">Verde: al día</option>
             </select>
           </div>
 
@@ -400,10 +401,13 @@ export default function ApplicantsPage({ user }) {
                       )}
                     </td>
                     <td>
-                      <Badge type={app.nivel_riesgo} />
+                      <SemaforoPunto nivel={app.nivel_riesgo} />
                       {app.motivo_riesgo && app.nivel_riesgo !== 'BAJO' && (
                         <div style={{ fontSize: '0.75rem', color: 'var(--status-danger-text)', marginTop: '4px', maxWidth: '180px' }}>
-                          {app.motivo_riesgo}
+                          {(() => {
+                            const motivos = app.motivo_riesgo.split(' | ');
+                            return <span title={motivos.join('\n')}>{motivos.slice(0, 2).join(' · ')}{motivos.length > 2 ? ` (y ${motivos.length - 2} más)` : ''}</span>;
+                          })()}
                         </div>
                       )}
                     </td>

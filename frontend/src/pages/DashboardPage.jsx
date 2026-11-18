@@ -14,6 +14,7 @@ import {
 import { api } from '../services/api';
 import Badge from '../components/Badge';
 import WelcomeHero from '../components/visual/WelcomeHero';
+import { SemaforoPanel } from '../components/Semaforo';
 
 export default function DashboardPage({ user, onNavigate }) {
   const [stats, setStats] = useState(null);
@@ -96,7 +97,8 @@ export default function DashboardPage({ user, onNavigate }) {
         </div>
       )}
 
-      {/* KPI Cards Grid */}
+      {/* KPI del postulante */}
+      {role === 'POSTULANTE' && (
       <div className="grid-cols-4 kpi-grid" style={{ marginBottom: '28px' }}>
         <div className="card card-hero">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -166,61 +168,56 @@ export default function DashboardPage({ user, onNavigate }) {
           </small>
         </div>
       </div>
-
-      {role !== 'POSTULANTE' && (
-        <div className="grid-cols-4 kpi-grid" style={{ marginBottom: '28px' }}>
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>POSTULANTES APROBADOS</small>
-                <h2 style={{ fontSize: '2rem', marginTop: '4px', color: 'var(--status-success-text)' }}>
-                  {stats?.postulantes_aprobados || 0}
-                </h2>
-              </div>
-              <div className="kpi-icon duo">
-                <CheckCircle2 size={22} color="var(--status-success-text)" />
-              </div>
-            </div>
-            <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>
-              Aprobaron todos sus cursos preparatorios
-            </small>
-          </div>
-
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>CUMPLIMIENTO PROMEDIO</small>
-                <h2 style={{ fontSize: '2rem', marginTop: '4px' }}>
-                  {stats?.porcentaje_cumplimiento_promedio || 0}%
-                </h2>
-              </div>
-              <div className="kpi-icon duo">
-                <FileCheck2 size={22} />
-              </div>
-            </div>
-            <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>
-              Actividades aprobadas sobre el total de sus cursos
-            </small>
-          </div>
-
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <small style={{ color: 'var(--text-sec)', fontWeight: 600 }}>CURSOS ACTIVOS</small>
-                <h2 style={{ fontSize: '2rem', marginTop: '4px' }}>
-                  {stats?.cursos_activos || 0}
-                </h2>
-              </div>
-              <div className="kpi-icon duo">
-                <BookOpen size={22} />
-              </div>
-            </div>
-            <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>
-              Cursos preparatorios en marcha
-            </small>
-          </div>
-        </div>
       )}
+
+      {/* Panel ejecutivo: indicadores y semáforo de riesgo */}
+      {role !== 'POSTULANTE' && stats && (() => {
+        const enRiesgo = (stats.postulantes_riesgo_alto || 0) + (stats.postulantes_riesgo_medio || 0);
+        const kpis = [
+          { t: 'Total postulantes', v: stats.total_postulantes, d: 'Inscritos en sus programas', icon: Users, hero: true },
+          { t: 'Cursos activos', v: stats.cursos_activos, d: 'Cursos preparatorios en marcha', icon: BookOpen },
+          { t: 'Aprobados', v: stats.postulantes_aprobados, d: 'Con todos sus certificados verificados', icon: CheckCircle2, color: 'var(--status-success-text)' },
+          { t: 'En riesgo', v: enRiesgo, d: `${stats.postulantes_riesgo_alto || 0} en rojo · ${stats.postulantes_riesgo_medio || 0} en amarillo`, icon: AlertTriangle, color: 'var(--status-danger-text)', alerta: enRiesgo > 0 },
+          { t: '% de cumplimiento', v: `${stats.porcentaje_cumplimiento_promedio || 0}%`, d: 'Actividades aprobadas sobre el total', icon: FileCheck2 },
+          { t: role === 'TUTOR' ? 'Entregas por calificar' : 'Actividades pendientes', v: stats.actividades_pendientes, d: role === 'TUTOR' ? 'Evidencias que esperan su nota' : 'Lo que falta aprobar a los postulantes vigentes', icon: Clock, color: 'var(--status-warning-text)' },
+          { t: 'Seguimientos realizados', v: stats.seguimientos_totales, d: `${stats.seguimientos_con_respuesta || 0} con respuesta del postulante`, icon: MessageSquareWarning },
+          { t: 'Seguimientos sin respuesta', v: stats.seguimientos_sin_respuesta, d: 'Llamadas o mensajes que no contestó', icon: MessageSquareWarning, color: 'var(--status-danger-text)' },
+        ];
+        return (
+          <>
+            <div className="grid-cols-4 kpi-grid" style={{ marginBottom: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+              {kpis.map(({ t, v, d, icon: Icono, color, hero, alerta }) => (
+                <div key={t} className={`card${hero ? ' card-hero' : ''}${alerta ? ' card-alert' : ''}`}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <small style={{ color: 'var(--text-sec)', fontWeight: 600, textTransform: 'uppercase' }}>{t}</small>
+                      <h2 style={{ fontSize: '2rem', marginTop: '4px', color: hero ? undefined : color }}>{v || 0}</h2>
+                    </div>
+                    <div className="kpi-icon duo">
+                      <Icono size={22} color={hero ? '#FFFFFF' : color} />
+                    </div>
+                  </div>
+                  <small style={{ color: 'var(--text-sec)', marginTop: '8px', display: 'block' }}>{d}</small>
+                </div>
+              ))}
+            </div>
+
+            <div className="card" style={{ marginBottom: '28px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <h3>Semáforo de riesgo</h3>
+                <small style={{ color: 'var(--text-sec)' }}>Postulantes con proceso en marcha según su nivel de riesgo. Toque un color para ver la lista.</small>
+              </div>
+              <SemaforoPanel
+                alto={stats.postulantes_riesgo_alto || 0}
+                medio={stats.postulantes_riesgo_medio || 0}
+                bajo={stats.postulantes_riesgo_bajo || 0}
+                reglas={{ inactividad: stats.regla_dias_inactividad, intentos: stats.regla_intentos_sin_respuesta, porVencer: stats.regla_dias_por_vencer }}
+                onVer={() => onNavigate('applicants')}
+              />
+            </div>
+          </>
+        );
+      })()}
 
       {/* Casos Críticos o Próximos Vencimientos */}
       {role === 'POSTULANTE' ? (

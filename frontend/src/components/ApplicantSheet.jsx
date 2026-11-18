@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, Clock, RotateCcw, XCircle, Lock, Circle, Mail, Phone, Link2 } from 'lucide-react';
 import { api } from '../services/api';
 import Badge from './Badge';
+import { SemaforoPunto } from './Semaforo';
 
 const ESTADOS = {
   PENDIENTE: { label: 'Por entregar', icon: Circle, color: 'var(--color-navy)' },
@@ -58,7 +59,7 @@ export default function ApplicantSheet({ inscripcionId }) {
       </div>
 
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', margin: '14px 0', alignItems: 'center' }}>
-        <Badge type={ficha.nivel_riesgo} text={`Riesgo ${ficha.nivel_riesgo.toLowerCase()}`} />
+        <SemaforoPunto nivel={ficha.nivel_riesgo} />
         <Badge type="APROBADO" text={`${ficha.resumen.hechas} hechas`} />
         <Badge type="PENDIENTE" text={`${ficha.resumen.por_hacer} por hacer`} />
         {ficha.resumen.por_vencer > 0 && <Badge type="ALTO" text={`${ficha.resumen.por_vencer} por vencer`} />}
