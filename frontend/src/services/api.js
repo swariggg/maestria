@@ -118,6 +118,10 @@ export const api = {
   // Inscripciones
   getOpenCalls: () => apiRequest('/inscripciones/convocatorias-abiertas'),
   getMyEnrollments: () => apiRequest('/inscripciones/mias'),
+  getCertificates: (inscripcionId) => apiRequest(`/certificados/inscripcion/${inscripcionId}`),
+  getPendingCertificates: () => apiRequest('/certificados/pendientes'),
+  downloadCourseCertificate: (asignacionId) => apiRequest(`/certificados/${asignacionId}/pdf`),
+  reviewCertificate: (asignacionId, data) => apiRequest(`/certificados/${asignacionId}/revision`, { method: 'PATCH', body: JSON.stringify(data) }),
   enroll: (data) => apiRequest('/inscripciones', { method: 'POST', body: JSON.stringify(data) }),
   getEnrollmentProgress: (inscripcionId) => apiRequest(`/inscripciones/${inscripcionId}/avance`),
   markDocumentationComplete: (inscripcionId) => apiRequest(`/inscripciones/${inscripcionId}/documentacion-completa`, { method: 'PATCH' }),

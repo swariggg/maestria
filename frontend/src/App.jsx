@@ -15,6 +15,7 @@ import UsersPage from './pages/UsersPage';
 import RegisterPage from './pages/RegisterPage';
 import EnrollmentPage from './pages/EnrollmentPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
+import CertificatesPage from './pages/CertificatesPage';
 import { api } from './services/api';
 
 export default function App() {
@@ -129,6 +130,7 @@ export default function App() {
         {activeTab === 'applicants' && <ApplicantsPage user={user} />}
         {activeTab === 'courses' && <CoursesPage user={user} />}
         {activeTab === 'evidences' && <EvidencesPage user={user} />}
+        {activeTab === 'certificates' && <CertificatesPage user={user} />}
         {activeTab === 'reports' && <ReportsPage user={user} />}
         {activeTab === 'profile' && <ProfilePage />}
         {activeTab === 'alerts' && <AlertsPage user={user} />}

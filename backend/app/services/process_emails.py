@@ -193,6 +193,25 @@ def correo_tutor_curso(db: Session, curso):
                 f"<strong>{escape(tutor.nombre_completo)}</strong> ({escape(tutor.email)}).</p>")
 
 
+def correo_certificado_emitido(db: Session, asig):
+    return _enviar(db, asig.inscripcion.postulante, "CERTIFICADO_EMITIDO",
+                   f"UIDE: Aprobó {asig.curso.nombre}", "Curso aprobado",
+                   f"<p>¡Felicitaciones! Aprobó el curso <strong>{escape(asig.curso.nombre)}</strong> con "
+                   f"{float(asig.nota_final or 0):g}/100. Su certificado ya está en la sección <strong>Certificados</strong>; "
+                   "su tutor(a) lo verificará para que cuente en el avance de la maestría.</p>")
+
+
+def correo_certificado_revisado(db: Session, asig):
+    if asig.certificado_estado == "APROBADO":
+        cuerpo = (f"<p>Su tutor(a) verificó el certificado de <strong>{escape(asig.curso.nombre)}</strong>. "
+                  "Ya cuenta en el avance de su maestría.</p>")
+    else:
+        cuerpo = (f"<p>Su tutor(a) devolvió el certificado de <strong>{escape(asig.curso.nombre)}</strong>.</p>"
+                  f"<p><strong>Observación:</strong> {escape(asig.certificado_observacion or '')}</p>")
+    return _enviar(db, asig.inscripcion.postulante, "CERTIFICADO_REVISADO",
+                   f"UIDE: Certificado de {asig.curso.nombre}", "Certificado del curso", cuerpo)
+
+
 def correo_documento_cargado(db: Session, inscripcion: Inscripcion, nombre_requisito: str, archivo: str):
     return _enviar(db, inscripcion.postulante, "DOCUMENTO_CARGADO",
                    f"UIDE: Documento recibido - {nombre_requisito}", "Documento recibido",

@@ -246,6 +246,12 @@ class AsignacionCurso(Base):
     nota_final = Column(Numeric(5, 2), nullable=True)
     estado_aprobacion = Column(String(20), default="PENDIENTE") # PENDIENTE, APROBADO, REPROBADO
     fecha_asignacion = Column(DateTime, default=datetime.utcnow)
+    # Certificado del curso: se emite al aprobar el curso y el tutor lo verifica para que cuente en la maestría
+    certificado_estado = Column(String(20), nullable=True)  # PENDIENTE, APROBADO, DEVUELTO
+    certificado_emitido_en = Column(DateTime, nullable=True)
+    certificado_revisado_por = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    certificado_revisado_en = Column(DateTime, nullable=True)
+    certificado_observacion = Column(String(500), nullable=True)
 
     inscripcion = relationship("Inscripcion", back_populates="asignaciones_cursos")
     curso = relationship("CursoPreparatorio", back_populates="asignaciones")

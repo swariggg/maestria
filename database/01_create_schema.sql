@@ -722,4 +722,24 @@ GO
 UPDATE actividades_curso SET tipo = 'ASIGNACION' WHERE tipo = 'INDIVIDUAL';
 GO
 
+-- 35. Certificado de cada curso: se emite al aprobarlo y el tutor lo verifica
+IF COL_LENGTH('asignaciones_curso', 'certificado_estado') IS NULL
+    ALTER TABLE asignaciones_curso ADD certificado_estado NVARCHAR(20) NULL; -- PENDIENTE, APROBADO, DEVUELTO
+IF COL_LENGTH('asignaciones_curso', 'certificado_emitido_en') IS NULL
+    ALTER TABLE asignaciones_curso ADD certificado_emitido_en DATETIME2 NULL;
+IF COL_LENGTH('asignaciones_curso', 'certificado_revisado_por') IS NULL
+    ALTER TABLE asignaciones_curso ADD certificado_revisado_por INT NULL CONSTRAINT FK_ac_cert_revisor FOREIGN KEY REFERENCES usuarios(id);
+IF COL_LENGTH('asignaciones_curso', 'certificado_revisado_en') IS NULL
+    ALTER TABLE asignaciones_curso ADD certificado_revisado_en DATETIME2 NULL;
+IF COL_LENGTH('asignaciones_curso', 'certificado_observacion') IS NULL
+    ALTER TABLE asignaciones_curso ADD certificado_observacion NVARCHAR(500) NULL;
+GO
+-- Los cursos que ya estaban aprobados quedan con su certificado pendiente de verificación
+-- (si el proceso ya estaba aprobado, se dan por verificados)
+UPDATE ac SET ac.certificado_estado = CASE WHEN i.estado_proceso = 'APROBADO' THEN 'APROBADO' ELSE 'PENDIENTE' END,
+              ac.certificado_emitido_en = SYSDATETIME()
+FROM asignaciones_curso ac JOIN inscripciones i ON i.id = ac.inscripcion_id
+WHERE ac.estado_aprobacion = 'APROBADO' AND ac.certificado_estado IS NULL;
+GO
+
 PRINT N'Esquema completo de APP - Maestría creado exitosamente en app_maestria.';

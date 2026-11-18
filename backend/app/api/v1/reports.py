@@ -12,7 +12,7 @@ from app.models.entities import Usuario, Inscripcion, Convocatoria, Programa, Re
 from app.services.report_generator import (
     generate_individual_pdf_report, generate_consolidated_excel_report, inscripciones_matriz
 )
-from app.services.certificado import generar_certificado, buscar_por_codigo
+from app.services.certificado import generar_certificado, buscar_por_codigo, buscar_curso_por_codigo
 from app.services.report_extra import (
     generate_consolidated_pdf, generate_traceability_pdf, generate_traceability_excel
 )
@@ -197,7 +197,16 @@ def verify_certificate(codigo: str, db: Session = Depends(get_db)):
     """Público: confirma que un certificado es auténtico. Solo devuelve lo que ya figura en él."""
     insc = buscar_por_codigo(db, codigo)
     if not insc:
-        raise HTTPException(status_code=404, detail="No existe un certificado con ese código.")
+        asig = buscar_curso_por_codigo(db, codigo)
+        if not asig:
+            raise HTTPException(status_code=404, detail="No existe un certificado con ese código.")
+        return {
+            "valido": True,
+            "postulante": asig.inscripcion.postulante.nombre_completo,
+            "programa": asig.inscripcion.convocatoria.programa.nombre,
+            "curso": asig.curso.nombre,
+            "verificado_por_tutor": asig.certificado_estado == "APROBADO",
+        }
     return {
         "valido": True,
         "postulante": insc.postulante.nombre_completo,

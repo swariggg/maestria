@@ -15,7 +15,7 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 from sqlalchemy.orm import Session
 from app.core.config import settings
-from app.models.entities import Inscripcion
+from app.models.entities import Inscripcion, AsignacionCurso
 from app.services.progress_service import asignaciones_del_postulante
 
 AZUL = colors.HexColor('#002D72')
@@ -43,11 +43,26 @@ def codigo_verificacion(inscripcion: Inscripcion) -> str:
     return f"{c[:4]}-{c[4:8]}-{c[8:]}"
 
 
+def codigo_curso(asig: AsignacionCurso) -> str:
+    firma = hmac.new(settings.SECRET_KEY.encode(), f"CURSO-{asig.id}-{asig.inscripcion.postulante_id}".encode(), hashlib.sha256)
+    c = firma.hexdigest()[:12].upper()
+    return f"C{c[:3]}-{c[3:7]}-{c[7:]}"
+
+
 def buscar_por_codigo(db: Session, codigo: str):
+    """Certificado final del preparatorio (inscripción) o de un curso (asignación)."""
     codigo = codigo.strip().upper()
     for insc in db.query(Inscripcion).filter(Inscripcion.estado_proceso == "APROBADO").all():
         if hmac.compare_digest(codigo_verificacion(insc), codigo):
             return insc
+    return None
+
+
+def buscar_curso_por_codigo(db: Session, codigo: str):
+    codigo = codigo.strip().upper()
+    for asig in db.query(AsignacionCurso).filter(AsignacionCurso.certificado_estado.isnot(None)).all():
+        if hmac.compare_digest(codigo_curso(asig), codigo):
+            return asig
     return None
 
 
@@ -117,6 +132,66 @@ def generar_certificado(db: Session, inscripcion: Inscripcion) -> io.BytesIO:
     c.setFont("Helvetica", 8.5)
     c.drawString(52, 50, f"Emitido el {_fecha_larga(datetime.now())}")
     c.drawRightString(ancho - 52, 50, f"Código de verificación: {codigo_verificacion(inscripcion)}")
+    c.showPage()
+    c.save()
+    buf.seek(0)
+    return buf
+
+
+def generar_certificado_curso(db: Session, asig: AsignacionCurso) -> io.BytesIO:
+    """Certificado de aprobación de un curso preparatorio, con logo, nombre, curso y nota."""
+    inscripcion = asig.inscripcion
+    curso = asig.curso
+    buf = io.BytesIO()
+    ancho, alto = landscape(letter)
+    c = canvas.Canvas(buf, pagesize=(ancho, alto))
+    c.setTitle(f"Certificado {curso.nombre} - {inscripcion.postulante.nombre_completo}")
+    c.setStrokeColor(AZUL); c.setLineWidth(3); c.rect(28, 28, ancho - 56, alto - 56)
+    c.setStrokeColor(VINO); c.setLineWidth(1); c.rect(36, 36, ancho - 72, alto - 72)
+
+    y = alto - 70
+    if os.path.exists(LOGO):
+        img = ImageReader(LOGO)
+        w, h = img.getSize()
+        alto_logo = 60
+        ancho_logo = w * alto_logo / h
+        c.drawImage(img, (ancho - ancho_logo) / 2, y - alto_logo, ancho_logo, alto_logo, mask='auto')
+        y -= alto_logo + 22
+    c.setFillColor(AZUL); c.setFont("Helvetica-Bold", 15)
+    c.drawCentredString(ancho / 2, y, "UNIVERSIDAD INTERNACIONAL DEL ECUADOR")
+    c.setFillColor(GRIS); c.setFont("Helvetica", 10.5)
+    c.drawCentredString(ancho / 2, y - 16, "Dirección General de Posgrados")
+
+    y -= 58
+    c.setFillColor(VINO); c.setFont("Helvetica-Bold", 24)
+    c.drawCentredString(ancho / 2, y, "CERTIFICADO DE CURSO PREPARATORIO")
+    c.setFillColor(GRIS); c.setFont("Helvetica", 12)
+    c.drawCentredString(ancho / 2, y - 30, "Se certifica que")
+    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 20)
+    c.drawCentredString(ancho / 2, y - 60, inscripcion.postulante.nombre_completo)
+    c.setFillColor(GRIS); c.setFont("Helvetica", 11)
+    c.drawCentredString(ancho / 2, y - 78, f"con cédula de identidad N.º {inscripcion.postulante.cedula},")
+    c.setFont("Helvetica", 12); c.setFillColor(colors.black)
+    c.drawCentredString(ancho / 2, y - 104, "aprobó el curso")
+    c.setFont("Helvetica-Bold", 15)
+    c.drawCentredString(ancho / 2, y - 124, curso.nombre)
+    c.setFont("Helvetica", 11); c.setFillColor(GRIS)
+    c.drawCentredString(ancho / 2, y - 142, f"del preparatorio de la {inscripcion.convocatoria.programa.nombre}")
+    if asig.nota_final is not None:
+        c.drawCentredString(ancho / 2, y - 160, f"con una calificación de {float(asig.nota_final):g} sobre 100.")
+
+    fy = 120
+    c.setStrokeColor(colors.black); c.setLineWidth(0.8)
+    c.line(ancho / 2 - 120, fy, ancho / 2 + 120, fy)
+    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 10.5)
+    c.drawCentredString(ancho / 2, fy - 14, curso.tutor.nombre_completo if curso.tutor else "Tutor(a) del curso")
+    c.setFont("Helvetica", 9.5); c.setFillColor(GRIS)
+    c.drawCentredString(ancho / 2, fy - 27, "Tutor(a) del curso - UIDE")
+
+    c.setFont("Helvetica", 8.5)
+    emitido = asig.certificado_emitido_en or datetime.now()
+    c.drawString(52, 50, f"Emitido el {_fecha_larga(emitido)}")
+    c.drawRightString(ancho - 52, 50, f"Código de verificación: {codigo_curso(asig)}")
     c.showPage()
     c.save()
     buf.seek(0)

@@ -10,7 +10,8 @@ import {
   ClipboardList,
   UserRound,
   SlidersHorizontal,
-  UserCog
+  UserCog,
+  Award
 } from 'lucide-react';
 
 export default function Sidebar({ user, activeTab, setActiveTab }) {
@@ -24,6 +25,7 @@ export default function Sidebar({ user, activeTab, setActiveTab }) {
     { id: 'courses', label: 'Programas y Cursos', icon: BookOpen, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
     { id: 'alerts', label: 'Alertas', icon: ShieldAlert, roles: ['ADMIN', 'COORDINADOR', 'TUTOR'] },
     { id: 'evidences', label: 'Evidencias', icon: FileCheck, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
+    { id: 'certificates', label: 'Certificados', icon: Award, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
     { id: 'reports', label: 'Reportes y Matrices', icon: BarChart3, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
     { id: 'users', label: 'Usuarios', icon: UserCog, roles: ['ADMIN'] },
     { id: 'config', label: 'Configuración', icon: SlidersHorizontal, roles: ['ADMIN'] },

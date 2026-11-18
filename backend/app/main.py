@@ -23,6 +23,7 @@ from app.api.v1.documents import router as documents_router
 from app.api.v1.configuration import router as configuration_router
 from app.api.v1.users import router as users_router
 from app.api.v1.materials import router as materials_router
+from app.api.v1.certificates import router as certificates_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -72,6 +73,7 @@ app.include_router(documents_router, prefix=api_v1_prefix)
 app.include_router(configuration_router, prefix=api_v1_prefix)
 app.include_router(users_router, prefix=api_v1_prefix)
 app.include_router(materials_router, prefix=api_v1_prefix)
+app.include_router(certificates_router, prefix=api_v1_prefix)
 
 @app.get("/")
 def root():

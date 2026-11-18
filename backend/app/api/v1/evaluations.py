@@ -10,7 +10,9 @@ from app.models.entities import (
 )
 from app.schemas.pydantic_models import EvaluationCreate, EvaluationOut
 from app.services.risk_engine import evaluate_applicant_risk
-from app.services.process_emails import correo_evidencia_evaluada, correo_proceso_aprobado, correo_no_aprobado_por_intentos
+from app.services.process_emails import (
+    correo_evidencia_evaluada, correo_proceso_aprobado, correo_no_aprobado_por_intentos, correo_certificado_emitido
+)
 from app.services.progress_service import (
     actualizar_estado_inscripcion, inscripcion_cerrada, CONV_PERMITE_CALIFICAR, mensaje_convocatoria,
     marcar_no_aprobado_por_intentos
@@ -130,6 +132,7 @@ def evaluate_evidence_version(
     acaba_de_aprobar = actualizar_estado_inscripcion(db, inscripcion, current_user.id)
     # Si agotó los intentos de una actividad obligatoria sin aprobarla, el proceso termina
     motivo_no_aprobado = None if acaba_de_aprobar else marcar_no_aprobado_por_intentos(db, inscripcion, current_user.id)
+    certificados_nuevos = [a.id for a in inscripcion.__dict__.pop("_certificados_nuevos", [])]
 
     db.commit()
     db.refresh(evaluacion)
@@ -150,6 +153,8 @@ def evaluate_evidence_version(
     evaluate_applicant_risk(db, inscripcion.id)
     db.refresh(evaluacion)
     correo_evidencia_evaluada(db, inscripcion, evaluacion)
+    for asig_id in certificados_nuevos:
+        correo_certificado_emitido(db, db.query(AsignacionCurso).get(asig_id))
     if acaba_de_aprobar:
         correo_proceso_aprobado(db, inscripcion)
     if motivo_no_aprobado:

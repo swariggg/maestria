@@ -120,14 +120,21 @@ def calcular_avance(db: Session, inscripcion: Inscripcion) -> dict:
             "nota_minima": float(asig.curso.nota_minima),
             "nota_final": float(asig.nota_final) if asig.nota_final is not None else None,
             "estado_aprobacion": asig.estado_aprobacion,
+            "certificado_estado": asig.certificado_estado,
+            "certificado_observacion": asig.certificado_observacion,
             "total_actividades": len(actividades),
             "actividades_aprobadas": aprobadas,
             "porcentaje": round(aprobadas / len(actividades) * 100.0, 1) if actividades else 0.0,
         })
 
+    certificados = sum(1 for c in cursos if c["certificado_estado"] == "APROBADO")
     return {
         "inscripcion_id": inscripcion.id,
         "estado_proceso": inscripcion.estado_proceso,
+        # Avance de la maestría: certificados de curso verificados por el tutor / cursos
+        "total_cursos": len(cursos),
+        "certificados_aprobados": certificados,
+        "porcentaje_maestria": round(certificados / len(cursos) * 100.0, 1) if cursos else 0.0,
         "total_actividades": total_global,
         "actividades_aprobadas": aprobadas_global,
         "actividades_pendientes": max(0, total_global - aprobadas_global),
@@ -197,15 +204,25 @@ def recalcular_curso(db: Session, asig: AsignacionCurso) -> None:
     if nota >= float(asig.curso.nota_minima) and obligatorias_completas:
         asig.estado_aprobacion = "APROBADO"
         asig.estado = "COMPLETADO"
+        if not asig.certificado_estado:
+            # Se emite el certificado del curso; queda pendiente hasta que el tutor lo verifique
+            asig.certificado_estado = "PENDIENTE"
+            asig.certificado_emitido_en = datetime.now()
+            asig.inscripcion.__dict__.setdefault("_certificados_nuevos", []).append(asig)
     else:
         asig.estado_aprobacion = "PENDIENTE"
         asig.estado = "EN_CURSO"
+        # Si una recalificación hace que el curso deje de estar aprobado, el certificado deja de valer
+        asig.certificado_estado = None
+        asig.certificado_emitido_en = None
+        asig.certificado_revisado_por = None
+        asig.certificado_revisado_en = None
 
 
 def actualizar_estado_inscripcion(db: Session, inscripcion: Inscripcion, usuario_id: Optional[int] = None) -> bool:
     """
-    La inscripción pasa a APROBADO cuando todos sus cursos están aprobados y su
-    documentación está completa. Si una recalificación hace que un curso deje de estar aprobado, vuelve a EN_CURSO.
+    La inscripción pasa a APROBADO cuando todos sus cursos están aprobados, el tutor verificó
+    cada certificado y la documentación está completa. Si una recalificación hace que un curso deje de estar aprobado, vuelve a EN_CURSO.
     Devuelve True si el postulante acaba de aprobar.
     """
     if inscripcion.estado_proceso in ["NO_APROBADO", "RETIRADO"]:
@@ -214,7 +231,8 @@ def actualizar_estado_inscripcion(db: Session, inscripcion: Inscripcion, usuario
     asignaciones = asignaciones_del_postulante(db, inscripcion)
     for asig in asignaciones:
         recalcular_curso(db, asig)
-    todos_aprobados = bool(asignaciones) and all(a.estado_aprobacion == "APROBADO" for a in asignaciones)
+    todos_aprobados = bool(asignaciones) and all(
+        a.estado_aprobacion == "APROBADO" and a.certificado_estado == "APROBADO" for a in asignaciones)
     anterior = inscripcion.estado_proceso
 
     if anterior == "DOCUMENTACION_PENDIENTE":
