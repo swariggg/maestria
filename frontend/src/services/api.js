@@ -96,6 +96,7 @@ export const api = {
   getNotifications: () => apiRequest('/notificaciones'),
   markNotificationRead: (id) => apiRequest(`/notificaciones/${id}/leida`, { method: 'PATCH' }),
   markAllNotificationsRead: () => apiRequest('/notificaciones/leer-todas', { method: 'POST' }),
+  getBoard: () => apiRequest('/tablero'),
   getMyProfile: () => apiRequest('/perfil'),
   uploadPhoto: (formData) => apiRequest('/perfil/foto', { method: 'POST', body: formData }),
   deletePhoto: () => apiRequest('/perfil/foto', { method: 'DELETE' }),

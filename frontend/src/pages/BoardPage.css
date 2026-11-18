@@ -1,0 +1,47 @@
+/* Tablero y agenda del postulante (solo esta página) */
+.board-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.board-switch { display: inline-flex; background: var(--surface-muted); border-radius: 999px; padding: 4px; gap: 4px; }
+.board-switch button { border: none; background: transparent; padding: 7px 16px; border-radius: 999px; font: inherit; font-weight: 600; font-size: 0.875rem; color: var(--text-sec); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.board-switch button.on { background: var(--surface-card); color: var(--color-uide); box-shadow: var(--shadow-soft); }
+
+.kanban { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 10px; align-items: flex-start; }
+.kanban-col { flex: 0 0 290px; background: var(--surface-muted); border-radius: 16px; padding: 12px; border-top: 4px solid var(--col-color, var(--color-navy)); }
+.kanban-col-head { padding: 2px 4px 10px; }
+.kanban-col-head strong { display: block; font-size: 0.95rem; }
+.kanban-col-head small { color: var(--text-sec); }
+.kanban-bar { height: 6px; border-radius: 3px; background: var(--border-light); margin-top: 8px; overflow: hidden; }
+.kanban-bar > span { display: block; height: 100%; background: var(--col-color, var(--color-navy)); border-radius: 3px; }
+.kanban-card { display: block; width: 100%; text-align: left; font: inherit; color: var(--text-main); background: var(--surface-card); border: 1px solid var(--border-light); border-left: 4px solid var(--card-color, var(--color-navy)); border-radius: 12px; padding: 12px; margin-top: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0, 45, 114, 0.06); transition: transform 0.15s, box-shadow 0.15s; }
+.kanban-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 45, 114, 0.1); }
+.kanban-card .kc-title { font-weight: 700; font-size: 0.9rem; line-height: 1.3; }
+.kanban-card .kc-meta { font-size: 0.78rem; color: var(--text-sec); margin-top: 4px; }
+.kanban-card .kc-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; margin-top: 8px; }
+.kanban-empty { padding: 18px 8px; text-align: center; color: var(--text-sec); font-size: 0.85rem; border: 1px dashed var(--border-light); border-radius: 12px; margin-top: 10px; }
+
+.agenda { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+@media (max-width: 960px) { .agenda { grid-template-columns: 1fr; } }
+.agenda-day { margin-bottom: 18px; }
+.agenda-day h3 { margin: 0 0 8px; font-size: 1.05rem; }
+.agenda-day h3 small { display: block; font-weight: 500; color: var(--text-sec); font-size: 0.85rem; }
+.agenda-item { display: grid; grid-template-columns: 150px 28px minmax(0, 1fr) auto; gap: 12px; align-items: center; background: var(--surface-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 8px 14px 8px 8px; margin-bottom: 8px; cursor: pointer; width: 100%; text-align: left; font: inherit; color: var(--text-main); }
+.agenda-item:hover { border-color: var(--item-color); }
+.agenda-course { align-self: stretch; border-radius: 8px; background: var(--item-tint); color: var(--item-color); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; border-bottom: 5px solid var(--item-color); }
+.agenda-item .ai-sub { font-size: 0.72rem; text-transform: uppercase; color: var(--text-sec); letter-spacing: 0.03em; }
+.agenda-item .ai-title { color: var(--color-navy); font-weight: 600; font-size: 1rem; }
+.agenda-item .ai-right { text-align: right; font-size: 0.75rem; color: var(--text-sec); white-space: nowrap; }
+.agenda-item .ai-right strong { font-size: 1.15rem; color: var(--text-main); }
+@media (max-width: 640px) {
+  .agenda-item { grid-template-columns: 6px 24px minmax(0, 1fr); }
+  .agenda-course { font-size: 0; padding: 0; border-bottom: none; background: var(--item-color); }
+  .agenda-item .ai-right { grid-column: 3; text-align: left; }
+}
+.agenda-week { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.agenda-week button { border: 1px solid var(--border-light); background: var(--surface-card); border-radius: 50%; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-navy); }
+.ring-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 0.78rem; color: var(--text-sec); justify-content: center; margin: 6px 0 14px; }
+.ring-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.ring-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.due-group { margin-top: 12px; }
+.due-group > small { font-weight: 700; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.72rem; }
+.due-card { border-left: 4px solid var(--item-color); background: var(--item-tint); border-radius: 10px; padding: 8px 12px; margin-top: 6px; font-size: 0.82rem; }
+.due-card .dc-course { font-size: 0.7rem; text-transform: uppercase; color: var(--text-sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.due-card .dc-title { color: var(--item-color); font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

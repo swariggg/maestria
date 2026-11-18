@@ -16,6 +16,7 @@ import RegisterPage from './pages/RegisterPage';
 import EnrollmentPage from './pages/EnrollmentPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import CertificatesPage from './pages/CertificatesPage';
+import BoardPage from './pages/BoardPage';
 import { api } from './services/api';
 import useScrollReveal from './components/visual/useScrollReveal';
 
@@ -127,6 +128,7 @@ export default function App() {
         {activeTab === 'enrollment' && <EnrollmentPage />}
         {activeTab === 'applicants' && <ApplicantsPage user={user} />}
         {activeTab === 'courses' && <CoursesPage user={user} />}
+        {activeTab === 'board' && <BoardPage onNavigate={setActiveTab} />}
         {activeTab === 'evidences' && <EvidencesPage user={user} />}
         {activeTab === 'certificates' && <CertificatesPage user={user} />}
         {activeTab === 'reports' && <ReportsPage user={user} />}

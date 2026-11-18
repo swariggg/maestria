@@ -11,7 +11,8 @@ import {
   UserRound,
   SlidersHorizontal,
   UserCog,
-  Award
+  Award,
+  KanbanSquare
 } from 'lucide-react';
 
 export default function Sidebar({ user, activeTab, setActiveTab }) {
@@ -19,6 +20,7 @@ export default function Sidebar({ user, activeTab, setActiveTab }) {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'COORDINADOR', 'TUTOR', 'POSTULANTE'] },
+    { id: 'board', label: 'Mis actividades', icon: KanbanSquare, roles: ['POSTULANTE'] },
     { id: 'enrollment', label: 'Inscripción', icon: ClipboardList, roles: ['POSTULANTE'] },
     { id: 'profile', label: 'Mi Perfil', icon: UserRound, roles: ['POSTULANTE', 'TUTOR'] },
     { id: 'applicants', label: 'Postulantes', icon: Users, roles: ['ADMIN', 'COORDINADOR', 'TUTOR'] },
