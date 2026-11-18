@@ -330,7 +330,8 @@ class FollowupCreate(BaseModel):
     compromisos: List[CompromisoIn] = []
     inscripcion_id: int
     fecha_contacto: datetime
-    tipo_contacto: str # TELEFONO, CORREO, WHATSAPP, VIDEOCONFERENCIA, PRESENCIAL
+    tipo_contacto: str # TELEFONO, CORREO, WHATSAPP, TEAMS, VIDEOCONFERENCIA, PRESENCIAL
+    dato_contacto: Optional[str] = Field(None, max_length=150)
     motivo: str
     accion_realizada: str
     resultado: str
@@ -360,6 +361,7 @@ class FollowupOut(BaseModel):
     observaciones: Optional[str] = None
     recomendaciones: Optional[str] = None
     evidencia_nombre: Optional[str] = None
+    dato_contacto: Optional[str] = None
     compromisos: List[CompromisoOut] = []
 
     class Config:

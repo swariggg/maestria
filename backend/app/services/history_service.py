@@ -7,7 +7,7 @@ from app.models.entities import (
 )
 
 TIPO_CONTACTO = {
-    "TELEFONO": "Llamada", "CORREO": "Correo", "WHATSAPP": "WhatsApp",
+    "TELEFONO": "Llamada", "CORREO": "Correo", "WHATSAPP": "WhatsApp", "TEAMS": "Llamada o chat de Teams",
     "VIDEOCONFERENCIA": "Videoconferencia", "PRESENCIAL": "Reunión presencial",
 }
 
@@ -16,7 +16,8 @@ def _evento(fecha, tipo, titulo, detalle=None, actor=None):
     return {"fecha": fecha, "tipo": tipo, "titulo": titulo, "detalle": detalle, "actor": actor}
 
 
-def historial_inscripcion(db: Session, inscripcion: Inscripcion) -> list:
+def historial_inscripcion(db: Session, inscripcion: Inscripcion, solo_tutor_id: int = None) -> list:
+    """Con solo_tutor_id (el tutor que consulta): sus seguimientos y las entregas de los cursos que dicta."""
     eventos = []
     postulante = inscripcion.postulante
 
@@ -56,14 +57,19 @@ def historial_inscripcion(db: Session, inscripcion: Inscripcion) -> list:
                                a.usuario.nombre_completo if a.usuario else "Sistema"))
 
     # Seguimientos del tutor
-    for s in db.query(SeguimientoPostulante).filter(SeguimientoPostulante.inscripcion_id == inscripcion.id).all():
+    seguimientos = db.query(SeguimientoPostulante).filter(SeguimientoPostulante.inscripcion_id == inscripcion.id)
+    if solo_tutor_id is not None:
+        seguimientos = seguimientos.filter(SeguimientoPostulante.tutor_id == solo_tutor_id)
+    for s in seguimientos.all():
         respuesta = "con respuesta" if s.hubo_respuesta else "sin respuesta"
+        medio = TIPO_CONTACTO.get(s.tipo_contacto, s.tipo_contacto) + (f" ({s.dato_contacto})" if s.dato_contacto else "")
         eventos.append(_evento(s.fecha_contacto, "SEGUIMIENTO",
-                               f"Seguimiento #{s.numero_seguimiento or '-'}: {TIPO_CONTACTO.get(s.tipo_contacto, s.tipo_contacto)} ({respuesta})",
+                               f"Seguimiento #{s.numero_seguimiento or '-'}: {medio}, {respuesta}",
                                f"{s.motivo}. {s.resultado}", s.tutor.nombre_completo))
 
     # Evidencias y calificaciones
-    asig_ids = [a.id for a in db.query(AsignacionCurso).filter(AsignacionCurso.inscripcion_id == inscripcion.id).all()]
+    asig_ids = [a.id for a in db.query(AsignacionCurso).filter(AsignacionCurso.inscripcion_id == inscripcion.id).all()
+                if solo_tutor_id is None or a.curso.tutor_id == solo_tutor_id]
     if asig_ids:
         for v in db.query(VersionEvidencia).join(EntregaEvidencia).filter(EntregaEvidencia.asignacion_curso_id.in_(asig_ids)).all():
             act = v.entrega.actividad

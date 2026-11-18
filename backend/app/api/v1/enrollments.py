@@ -147,7 +147,9 @@ def get_enrollment_history(
         raise HTTPException(status_code=404, detail="Inscripción no encontrada.")
     if not verify_applicant_access(current_user, inscripcion.postulante_id, db):
         raise HTTPException(status_code=403, detail="No tiene autorización para consultar este postulante.")
-    return historial_inscripcion(db, inscripcion)
+    # El tutor ve lo suyo (sus contactos y las entregas de sus cursos); coordinación y admin, todo
+    solo_tutor = current_user.id if current_user.rol.codigo == "TUTOR" else None
+    return historial_inscripcion(db, inscripcion, solo_tutor)
 
 
 @router.patch("/{inscripcion_id}/documentacion-completa")

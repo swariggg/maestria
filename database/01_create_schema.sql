@@ -768,4 +768,9 @@ IF COL_LENGTH('tutores', 'presentacion') IS NULL
     ALTER TABLE tutores ADD presentacion NVARCHAR(1000) NULL;
 GO
 
+-- 38. Seguimiento: dato de contacto usado (número, correo o cuenta de Teams)
+IF COL_LENGTH('seguimientos_postulante', 'dato_contacto') IS NULL
+    ALTER TABLE seguimientos_postulante ADD dato_contacto NVARCHAR(150) NULL;
+GO
+
 PRINT N'Esquema completo de APP - Maestría creado exitosamente en app_maestria.';

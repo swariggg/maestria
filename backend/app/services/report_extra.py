@@ -16,6 +16,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from sqlalchemy.orm import Session
 from app.models.entities import SeguimientoPostulante
+from app.services.history_service import TIPO_CONTACTO
 from app.services.report_generator import COLUMNAS_MATRIZ, filas_matriz
 
 AZUL = colors.HexColor('#002D72')
@@ -129,7 +130,7 @@ def filas_trazabilidad(db: Session, inscripciones) -> list:
                 s.numero_seguimiento or n,
                 s.fecha_contacto.strftime("%Y-%m-%d %H:%M"),
                 s.tutor.nombre_completo,
-                s.tipo_contacto,
+                TIPO_CONTACTO.get(s.tipo_contacto, s.tipo_contacto) + (f" ({s.dato_contacto})" if s.dato_contacto else ""),
                 s.motivo,
                 s.accion_realizada,
                 s.resultado,

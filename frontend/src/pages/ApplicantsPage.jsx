@@ -26,6 +26,11 @@ import ApplicantSheet from '../components/ApplicantSheet';
 import { SemaforoPunto } from '../components/Semaforo';
 import { saveBlob } from '../utils/download';
 
+const MEDIOS = {
+  TELEFONO: 'Llamada', CORREO: 'Correo', WHATSAPP: 'WhatsApp', TEAMS: 'Teams',
+  VIDEOCONFERENCIA: 'Videoconferencia', PRESENCIAL: 'Presencial',
+};
+
 export default function ApplicantsPage({ user }) {
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +54,7 @@ export default function ApplicantsPage({ user }) {
   // Seguimientos
   const [followups, setFollowups] = useState([]);
   const [contactType, setContactType] = useState('TELEFONO');
+  const [contactData, setContactData] = useState('');
   const [contactReason, setContactReason] = useState('');
   const [contactAction, setContactAction] = useState('');
   const [contactResult, setContactResult] = useState('');
@@ -136,7 +142,7 @@ export default function ApplicantsPage({ user }) {
   const handleOpenFollowup = async (applicant) => {
     setSelectedApplicant(applicant);
     setFollowupError(null);
-    setContactReason('');
+    setContactReason(''); setContactData('');
     setContactAction('');
     setContactResult('');
     setApplicantReply('');
@@ -176,6 +182,7 @@ export default function ApplicantsPage({ user }) {
         inscripcion_id: selectedApplicant.id,
         fecha_contacto: new Date().toISOString(),
         tipo_contacto: contactType,
+        dato_contacto: contactData || null,
         motivo: contactReason,
         accion_realizada: contactAction,
         resultado: contactResult,
@@ -198,7 +205,7 @@ export default function ApplicantsPage({ user }) {
       setFollowups(await api.getFollowups(selectedApplicant.id));
       loadApplicants();
 
-      setContactReason('');
+      setContactReason(''); setContactData('');
       setContactAction('');
       setContactResult('');
       setApplicantReply('');
@@ -599,10 +606,10 @@ export default function ApplicantsPage({ user }) {
             followups.map((s) => (
               <div key={s.id} style={{ background: 'var(--surface-muted)', padding: '10px 14px', borderRadius: '10px', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <strong>#{s.numero_seguimiento} · {s.tipo_contacto} · {s.motivo}</strong>
+                  <strong>#{s.numero_seguimiento} · {MEDIOS[s.tipo_contacto] || s.tipo_contacto}{s.dato_contacto ? ` (${s.dato_contacto})` : ''} · {s.motivo}</strong>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Badge type={s.estado_caso} />
-                    <small style={{ color: 'var(--text-sec)' }}>{new Date(s.fecha_contacto).toLocaleDateString()}</small>
+                    <small style={{ color: 'var(--text-sec)' }}>{new Date(s.fecha_contacto).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}</small>
                   </div>
                 </div>
                 <p style={{ fontSize: '0.85rem', margin: '4px 0' }}><strong>Acción:</strong> {s.accion_realizada}</p>
@@ -650,9 +657,15 @@ export default function ApplicantsPage({ user }) {
                 <option value="TELEFONO">Llamada Telefónica</option>
                 <option value="CORREO">Correo Electrónico</option>
                 <option value="WHATSAPP">WhatsApp</option>
+                <option value="TEAMS">Llamada o chat de Teams</option>
                 <option value="VIDEOCONFERENCIA">Videoconferencia</option>
                 <option value="PRESENCIAL">Presencial</option>
               </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Dato de contacto usado</label>
+              <input className="form-input" value={contactData} onChange={(e) => setContactData(e.target.value)} maxLength={150}
+                placeholder={contactType === 'TELEFONO' || contactType === 'WHATSAPP' ? '0991234567' : contactType === 'PRESENCIAL' ? 'Lugar de la reunión' : 'correo o cuenta de Teams'} />
             </div>
             <div className="form-group">
               <label className="form-label">¿El postulante respondió?</label>

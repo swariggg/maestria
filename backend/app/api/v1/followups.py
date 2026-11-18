@@ -18,7 +18,7 @@ from app.services.risk_engine import evaluate_applicant_risk
 
 router = APIRouter(prefix="/seguimientos", tags=["Seguimiento de Postulantes"])
 
-TIPOS_CONTACTO = ["TELEFONO", "CORREO", "WHATSAPP", "VIDEOCONFERENCIA", "PRESENCIAL"]
+TIPOS_CONTACTO = ["TELEFONO", "CORREO", "WHATSAPP", "TEAMS", "VIDEOCONFERENCIA", "PRESENCIAL"]
 ESTADOS_CASO = ["ABIERTO", "EN_PROCESO", "RESUELTO", "ESCALADO"]
 EXTENSIONES_EVIDENCIA = ["pdf", "jpg", "jpeg", "png", "docx", "txt"]
 MAX_EVIDENCIA_MB = 10
@@ -57,6 +57,7 @@ def followup_out(db: Session, s: SeguimientoPostulante) -> FollowupOut:
         observaciones=s.observaciones,
         recomendaciones=s.recomendaciones,
         evidencia_nombre=s.evidencia_nombre_original,
+        dato_contacto=s.dato_contacto,
         compromisos=[CompromisoOut.model_validate(c) for c in s.compromisos],
     )
 
@@ -119,6 +120,7 @@ def create_followup(
         tutor_id=current_user.id,
         fecha_contacto=data.fecha_contacto,
         tipo_contacto=data.tipo_contacto,
+        dato_contacto=(data.dato_contacto or "").strip() or None,
         motivo=data.motivo,
         accion_realizada=data.accion_realizada,
         resultado=data.resultado,

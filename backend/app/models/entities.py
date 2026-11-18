@@ -405,6 +405,7 @@ class SeguimientoPostulante(Base):
     evidencia_ruta_privada = Column(String(500), nullable=True)
     evidencia_mime_type = Column(String(100), nullable=True)
     evidencia_hash_sha256 = Column(String(64), nullable=True)
+    dato_contacto = Column(String(150), nullable=True)  # número, correo o cuenta de Teams con que se contactó
 
     inscripcion = relationship("Inscripcion", back_populates="seguimientos")
     tutor = relationship("Usuario", foreign_keys=[tutor_id])

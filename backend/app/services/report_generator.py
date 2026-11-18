@@ -1,5 +1,6 @@
 import io
 from datetime import datetime, date
+from html import escape
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from app.services.certificado import logo_flowable
@@ -87,23 +88,36 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
     # Datos del Postulante y Programa
     tutor_nombre = nombres_tutores(db, inscripcion, "No asignado")
     avance = calcular_avance(db, inscripcion)
+    perfil = postulante.perfil
+    celda = ParagraphStyle('Celda', parent=body_style, fontSize=7.8, leading=9.6)
+    cab = ParagraphStyle('Cab', parent=celda, fontName='Helvetica-Bold')
+    P = lambda t, e=celda: Paragraph(escape(str(t)) if t not in (None, "") else "-", e)
 
+    def tabla(filas, anchos, fondo):
+        t = Table(filas, colWidths=anchos, repeatRows=1)
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(fondo)),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        return t
+
+    def dato(etq, valor):
+        return [Paragraph(f"<b>{etq}</b>", body_style), Paragraph(escape(str(valor)) if valor not in (None, "") else "N/A", body_style)]
+
+    story.append(Paragraph("Datos personales y del programa", section_title))
     info_data = [
-        [Paragraph("<b>Postulante:</b>", body_style), Paragraph(postulante.nombre_completo, body_style),
-         Paragraph("<b>Cédula / Identificación:</b>", body_style), Paragraph(postulante.cedula, body_style)],
-        [Paragraph("<b>Correo:</b>", body_style), Paragraph(postulante.email, body_style),
-         Paragraph("<b>Teléfono:</b>", body_style), Paragraph(postulante.telefono or "N/A", body_style)],
-        [Paragraph("<b>Programa:</b>", body_style), Paragraph(f"{programa.codigo} - {programa.nombre}", body_style),
-         Paragraph("<b>Convocatoria:</b>", body_style), Paragraph(convocatoria.nombre, body_style)],
-        [Paragraph("<b>Tutor Asignado:</b>", body_style), Paragraph(tutor_nombre, body_style),
-         Paragraph("<b>Fecha Inscripción:</b>", body_style), Paragraph(inscripcion.fecha_inscripcion.strftime("%Y-%m-%d"), body_style)],
-        [Paragraph("<b>Estado Proceso:</b>", body_style), Paragraph(f"<b>{inscripcion.estado_proceso}</b>", body_style),
-         Paragraph("<b>Nivel de Riesgo:</b>", body_style), Paragraph(f"<b>{inscripcion.nivel_riesgo}</b>", body_style)],
-        [Paragraph("<b>Nivel de Cumplimiento:</b>", body_style), Paragraph(f"{avance['porcentaje']}% ({avance['actividades_aprobadas']} de {avance['total_actividades']} actividades aprobadas)", body_style),
-         Paragraph("<b>Cursos Asignados:</b>", body_style), Paragraph(str(len(avance['cursos'])), body_style)],
+        dato("Postulante:", postulante.nombre_completo) + dato("Cédula:", postulante.cedula),
+        dato("Correo:", postulante.email) + dato("Teléfono:", postulante.telefono),
+        dato("Fecha de nacimiento:", perfil.fecha_nacimiento.strftime("%Y-%m-%d") if perfil and perfil.fecha_nacimiento else None)
+        + dato("Ciudad:", perfil.ciudad if perfil else None),
+        dato("Título:", perfil.titulo_tercer_nivel if perfil else None) + dato("Universidad:", perfil.universidad_origen if perfil else None),
+        dato("Programa:", f"{programa.codigo} - {programa.nombre}") + dato("Convocatoria:", convocatoria.nombre),
+        dato("Tutor(es):", tutor_nombre) + dato("Fecha de inscripción:", inscripcion.fecha_inscripcion.strftime("%Y-%m-%d")),
     ]
-
-    info_table = Table(info_data, colWidths=[100, 180, 120, 130])
+    info_table = Table(info_data, colWidths=[100, 165, 110, 155])
     info_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
@@ -112,97 +126,96 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
         ('TOPPADDING', (0, 0), (-1, -1), 4),
     ]))
     story.append(info_table)
-    story.append(Spacer(1, 15))
 
-    # Cursos y Evaluaciones de Actividades
-    story.append(Paragraph("1. Actividades y Evaluaciones de los Cursos Preparatorios", section_title))
-    
-    act_headers = [
-        Paragraph("<b>Actividad / Proyecto</b>", body_style),
-        Paragraph("<b>Puntos</b>", body_style),
-        Paragraph("<b>Estado Entrega</b>", body_style),
-        Paragraph("<b>Calificación</b>", body_style),
-        Paragraph("<b>Resultado</b>", body_style),
-    ]
-    act_rows = [act_headers]
+    # Estado y cumplimiento
+    story.append(Paragraph("Estado y cumplimiento", section_title))
+    resumen = Table([
+        dato("Estado del proceso:", inscripcion.estado_proceso) + dato("Nivel de riesgo:", {"ALTO": "Alto (rojo)", "MEDIO": "Medio (amarillo)", "BAJO": "Al día (verde)"}.get(inscripcion.nivel_riesgo, inscripcion.nivel_riesgo)),
+        dato("Cumplimiento:", f"{avance['porcentaje']}% ({avance['actividades_aprobadas']} de {avance['total_actividades']} actividades aprobadas)")
+        + dato("Avance de la maestría:", f"{avance['porcentaje_maestria']}% ({avance['certificados_aprobados']} de {avance['total_cursos']} certificados verificados)"),
+    ], colWidths=[100, 165, 110, 155])
+    resumen.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FDF5DC')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#EAAA00')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.append(resumen)
 
+    # 1. Cursos
+    story.append(Paragraph("1. Cursos preparatorios", section_title))
+    filas = [[P("Curso", cab), P("Tutor", cab), P("% completado", cab), P("Nota /100", cab), P("Resultado", cab), P("Certificado", cab)]]
+    for c in avance["cursos"]:
+        filas.append([P(f"{c['codigo']} - {c['nombre']}"), P(c["tutor_nombre"] or "Sin tutor"), P(f"{c['porcentaje']}%"),
+                      P(f"{c['nota_final']:g} (mín. {c['nota_minima']:g})" if c["nota_final"] is not None else f"- (mín. {c['nota_minima']:g})"),
+                      P(c["estado_aprobacion"] or "EN CURSO"), P(c["certificado_estado"] or "-")])
+    story.append(tabla(filas, [150, 100, 60, 75, 70, 75], '#E6ECF5'))
+
+    # 2. Actividades y evidencias
+    story.append(Paragraph("2. Actividades, evidencias y calificaciones", section_title))
+    filas = [[P("Actividad", cab), P("Pts", cab), P("Estado", cab), P("Evidencia entregada", cab), P("Nota", cab), P("Observación del tutor", cab)]]
+    observaciones = []
     for asig_curso in asignaciones_del_postulante(db, inscripcion):
         actividades = db.query(ActividadCurso).filter(
             ActividadCurso.curso_id == asig_curso.curso_id,
             ActividadCurso.estado == 'ACTIVO'
-        ).all()
+        ).order_by(ActividadCurso.fecha_limite).all()
         for act in actividades:
             entrega = db.query(EntregaEvidencia).filter(
                 EntregaEvidencia.asignacion_curso_id == asig_curso.id,
                 EntregaEvidencia.actividad_id == act.id
             ).first()
-
-            estado_ent = entrega.estado_entrega if entrega else "PENDIENTE"
-            calif_str = "S/N"
-            res_str = "Pendiente"
-
-            if entrega and entrega.versiones:
-                ultima_version = entrega.versiones[-1]
-                if ultima_version.evaluacion:
-                    calif_str = f"{ultima_version.evaluacion.puntaje_obtenido:.2f}"
-                    res_str = ultima_version.evaluacion.resultado
-
-            act_rows.append([
-                Paragraph(f"{asig_curso.curso.codigo}: {act.titulo}", body_style),
-                Paragraph(f"{float(act.ponderacion):g}", body_style),
-                Paragraph(estado_ent, body_style),
-                Paragraph(calif_str, body_style),
-                Paragraph(res_str, body_style),
+            ultima = entrega.versiones[-1] if entrega and entrega.versiones else None
+            ev = ultima.evaluacion if ultima else None
+            evidencia = (f"{ultima.nombre_archivo_original} (v{ultima.numero_version}, {ultima.fecha_entrega.strftime('%Y-%m-%d %H:%M')}"
+                         + (", tardía" if ultima.es_tardia else "") + ")") if ultima else "Sin entrega"
+            if ev and ev.observaciones:
+                observaciones.append(f"{act.titulo}: {ev.observaciones}")
+            filas.append([
+                P(f"{asig_curso.curso.codigo}: {act.titulo}"),
+                P(f"{float(act.ponderacion):g}"),
+                P(entrega.estado_entrega if entrega else "PENDIENTE"),
+                P(evidencia),
+                P(f"{float(ev.puntaje_obtenido):g}" if ev else "S/N"),
+                P((ev.observaciones or ev.resultado) if ev else "-"),
             ])
-    
-    act_table = Table(act_rows, colWidths=[200, 75, 95, 80, 80])
-    act_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E6ECF5')),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
-        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-    ]))
-    story.append(act_table)
-    story.append(Spacer(1, 15))
+    story.append(tabla(filas, [130, 30, 70, 140, 40, 120], '#E6ECF5'))
 
-    # Historial Cronológico de Seguimientos
-    story.append(Paragraph("2. Historial de Seguimientos Registrados", section_title))
+    # 3. Seguimientos
+    story.append(Paragraph("3. Seguimientos del tutor", section_title))
     seguimientos = db.query(SeguimientoPostulante).filter(
         SeguimientoPostulante.inscripcion_id == inscripcion.id
-    ).order_by(SeguimientoPostulante.fecha_contacto.asc()).all()
-
+    ).order_by(SeguimientoPostulante.fecha_contacto.asc(), SeguimientoPostulante.id.asc()).all()
     if seguimientos:
-        seg_headers = [
-            Paragraph("<b>Fecha</b>", body_style),
-            Paragraph("<b>Canal</b>", body_style),
-            Paragraph("<b>Motivo / Acción</b>", body_style),
-            Paragraph("<b>Respuesta Postulante</b>", body_style),
-            Paragraph("<b>Estado</b>", body_style),
-        ]
-        seg_rows = [seg_headers]
-        for s in seguimientos:
-            resp_texto = s.respuesta_postulante or ("Respondido" if s.hubo_respuesta else "SIN RESPUESTA")
-            seg_rows.append([
-                Paragraph(s.fecha_contacto.strftime("%Y-%m-%d"), body_style),
-                Paragraph(s.tipo_contacto, body_style),
-                Paragraph(f"{s.motivo}<br/><font color='#6B7280'>{s.accion_realizada}</font>", body_style),
-                Paragraph(resp_texto, body_style),
-                Paragraph(s.estado_caso, body_style),
+        from app.services.history_service import TIPO_CONTACTO
+        filas = [[P("N.º", cab), P("Fecha y hora", cab), P("Responsable", cab), P("Medio", cab), P("Resultado", cab),
+                  P("Respuesta del postulante", cab), P("Compromisos / próxima acción", cab), P("Estado", cab)]]
+        for n, s_ in enumerate(seguimientos, 1):
+            compromisos = "; ".join(f"{c.descripcion} ({c.fecha_compromiso:%Y-%m-%d}{', cumplido' if c.cumplido else ''})" for c in s_.compromisos)
+            proxima = (s_.proxima_accion or "") + (f" ({s_.fecha_proxima_accion:%Y-%m-%d})" if s_.fecha_proxima_accion else "")
+            filas.append([
+                P(s_.numero_seguimiento or n), P(s_.fecha_contacto.strftime("%Y-%m-%d %H:%M")), P(s_.tutor.nombre_completo),
+                P(TIPO_CONTACTO.get(s_.tipo_contacto, s_.tipo_contacto) + (f" ({s_.dato_contacto})" if s_.dato_contacto else "")),
+                P(s_.resultado), P(s_.respuesta_postulante or ("Respondió" if s_.hubo_respuesta else "SIN RESPUESTA")),
+                P(" · ".join(x for x in [compromisos, proxima] if x) or "-"), P(s_.estado_caso),
             ])
-        
-        seg_table = Table(seg_rows, colWidths=[70, 80, 180, 130, 70])
-        seg_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F7E6EE')),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ]))
-        story.append(seg_table)
+            if s_.observaciones:
+                observaciones.append(f"Seguimiento #{s_.numero_seguimiento or n}: {s_.observaciones}")
+            if s_.recomendaciones:
+                observaciones.append(f"Recomendación (seguimiento #{s_.numero_seguimiento or n}): {s_.recomendaciones}")
+        story.append(tabla(filas, [25, 60, 70, 65, 85, 80, 85, 60], '#F7E6EE'))
     else:
         story.append(Paragraph("<i>No se registran contactos de seguimiento a la fecha.</i>", body_style))
+
+    # 4. Observaciones
+    story.append(Paragraph("4. Observaciones y recomendaciones", section_title))
+    if inscripcion.nivel_riesgo != "BAJO" and inscripcion.motivo_riesgo:
+        observaciones.insert(0, f"Riesgo: {inscripcion.motivo_riesgo}")
+    if observaciones:
+        for o in observaciones:
+            story.append(Paragraph(f"• {escape(o)}", body_style))
+    else:
+        story.append(Paragraph("<i>Sin observaciones registradas.</i>", body_style))
 
     story.append(Spacer(1, 25))
     story.append(Paragraph(f"Informe generado automáticamente el {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Sistema APP Maestría UIDE.", ParagraphStyle('Footer', parent=styles['Italic'], fontSize=8, textColor=colors.HexColor('#9CA3AF'), alignment=1)))
