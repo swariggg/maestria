@@ -31,17 +31,6 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
         <section className="login-intro">
           <img src="/uide-logo.svg" alt="UIDE - Universidad Internacional del Ecuador" className="login-logo" />
 
-          <div className="login-stats" data-reveal>
-            <div className="stat-pill dark">
-              <strong>APP</strong>
-              <small>Maestría<br />UIDE</small>
-            </div>
-            <div className="stat-pill">
-              <strong>4</strong>
-              <small>Roles en<br />un solo lugar</small>
-            </div>
-          </div>
-
           <h1 className="login-headline">
             Reinventemos
             <span className="lh-inline">
@@ -53,13 +42,6 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
             Gestión académica de los cursos preparatorios: inscripción, actividades, evidencias,
             seguimiento y certificados, con avisos dentro de la app.
           </p>
-
-          <div className="login-chips">
-            <span className="chip-soft">Inscripción</span>
-            <span className="chip-soft">Cursos preparatorios</span>
-            <span className="chip-soft">Evidencias</span>
-            <span className="chip-soft">Certificados</span>
-          </div>
         </section>
 
         <section className="login-form-card">
@@ -137,7 +119,7 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
         </section>
 
         <aside className="login-media" aria-hidden="true">
-          <img src="/campus-uide.jpg" alt="" />
+          <img src="/campus-uide-2.jpg" alt="" style={{ objectPosition: "66% center" }} />
           <div className="login-media-glass">
             <span className="lmg-big">Campus<br />Quito</span>
             <span className="lmg-sep" />
