@@ -19,7 +19,7 @@ PARAMETROS = {
                               "Días antes del vencimiento en que una actividad pendiente da riesgo medio", "RIESGO", 1, 30),
     "MARGEN_BAJO_AVANCE": ("int", lambda: settings.MARGEN_BAJO_AVANCE,
                            "Puntos por debajo del avance esperado para marcar riesgo medio", "RIESGO", 5, 100),
-    "DIAS_RECORDATORIO": ("lista", lambda: "5,3,1",
+    "DIAS_RECORDATORIO": ("lista", lambda: "15,10,5,3,1",
                           "Días antes del vencimiento en que se envía un recordatorio por correo", "NOTIFICACIONES", 1, 60),
 }
 

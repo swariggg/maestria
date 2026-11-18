@@ -185,14 +185,8 @@ class RetiroResolucion(BaseModel):
 
 
 class DatosAdministrativos(BaseModel):
-    estado_pago: str = "PENDIENTE"
-    tiene_beca: bool = False
-    porcentaje_beca: Optional[int] = Field(default=None, ge=1, le=100)
     requiere_adaptaciones: bool = False
     nota_adaptaciones: Optional[str] = Field(default=None, max_length=500)
-
-
-ESTADOS_PAGO = ["PENDIENTE", "PAGADO", "EXONERADO"]
 
 
 def _inscripcion_del_programa(db: Session, user: Usuario, inscripcion_id: int) -> Inscripcion:
@@ -274,17 +268,10 @@ def update_administrative_data(
     current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR")),
     db: Session = Depends(get_db)
 ):
-    """Pago, beca y adaptaciones. El pago se marca a mano: la app todavía no verifica pagos."""
+    """Adaptaciones (necesidades especiales). El pago y las becas se manejan fuera de la app."""
     insc = _inscripcion_del_programa(db, current_user, inscripcion_id)
-    if data.estado_pago not in ESTADOS_PAGO:
-        raise HTTPException(status_code=400, detail=f"Estado de pago inválido. Use: {', '.join(ESTADOS_PAGO)}.")
-    if data.tiene_beca and not data.porcentaje_beca:
-        raise HTTPException(status_code=400, detail="Indique el porcentaje de la beca.")
-    campos = ["estado_pago", "tiene_beca", "porcentaje_beca", "requiere_adaptaciones", "nota_adaptaciones"]
+    campos = ["requiere_adaptaciones", "nota_adaptaciones"]
     antes = {c: getattr(insc, c) for c in campos}
-    insc.estado_pago = data.estado_pago
-    insc.tiene_beca = data.tiene_beca
-    insc.porcentaje_beca = data.porcentaje_beca if data.tiene_beca else None
     insc.requiere_adaptaciones = data.requiere_adaptaciones
     insc.nota_adaptaciones = (data.nota_adaptaciones or "").strip() or None if data.requiere_adaptaciones else None
     despues = {c: getattr(insc, c) for c in campos}

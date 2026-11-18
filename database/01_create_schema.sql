@@ -596,14 +596,13 @@ GO
 IF COL_LENGTH('usuarios', 'acepto_datos_en') IS NULL
     ALTER TABLE usuarios ADD acepto_datos_en DATETIME2 NULL;
 GO
-IF COL_LENGTH('inscripciones', 'estado_pago') IS NULL
-    ALTER TABLE inscripciones ADD estado_pago NVARCHAR(20) NOT NULL CONSTRAINT DF_insc_pago DEFAULT 'PENDIENTE';
+-- El pago y las becas se manejan fuera de la app: se quitan las columnas si una versión anterior las creó
+IF OBJECT_ID('DF_insc_pago', 'D') IS NOT NULL ALTER TABLE inscripciones DROP CONSTRAINT DF_insc_pago;
+IF OBJECT_ID('DF_insc_beca', 'D') IS NOT NULL ALTER TABLE inscripciones DROP CONSTRAINT DF_insc_beca;
 GO
-IF COL_LENGTH('inscripciones', 'tiene_beca') IS NULL
-    ALTER TABLE inscripciones ADD tiene_beca BIT NOT NULL CONSTRAINT DF_insc_beca DEFAULT 0;
-GO
-IF COL_LENGTH('inscripciones', 'porcentaje_beca') IS NULL
-    ALTER TABLE inscripciones ADD porcentaje_beca INT NULL;
+IF COL_LENGTH('inscripciones', 'estado_pago') IS NOT NULL ALTER TABLE inscripciones DROP COLUMN estado_pago;
+IF COL_LENGTH('inscripciones', 'tiene_beca') IS NOT NULL ALTER TABLE inscripciones DROP COLUMN tiene_beca;
+IF COL_LENGTH('inscripciones', 'porcentaje_beca') IS NOT NULL ALTER TABLE inscripciones DROP COLUMN porcentaje_beca;
 GO
 IF COL_LENGTH('inscripciones', 'requiere_adaptaciones') IS NULL
     ALTER TABLE inscripciones ADD requiere_adaptaciones BIT NOT NULL CONSTRAINT DF_insc_adapt DEFAULT 0;

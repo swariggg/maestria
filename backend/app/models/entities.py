@@ -170,9 +170,6 @@ class Inscripcion(Base):
     nivel_riesgo = Column(String(20), default="BAJO") # BAJO, MEDIO, ALTO
     motivo_riesgo = Column(String(500), nullable=True)
     fecha_ultimo_avance = Column(DateTime, default=datetime.utcnow)
-    estado_pago = Column(String(20), default="PENDIENTE") # PENDIENTE, PAGADO, EXONERADO
-    tiene_beca = Column(Boolean, default=False)
-    porcentaje_beca = Column(Integer, nullable=True)
     requiere_adaptaciones = Column(Boolean, default=False)
     nota_adaptaciones = Column(String(500), nullable=True)
     retiro_solicitado_en = Column(DateTime, nullable=True)

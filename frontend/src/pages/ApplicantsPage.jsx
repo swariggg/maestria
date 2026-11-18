@@ -133,9 +133,6 @@ export default function ApplicantsPage({ user }) {
     setAdminMsg(null);
     setRetiroObs('');
     setAdminForm({
-      estado_pago: app.estado_pago || 'PENDIENTE',
-      tiene_beca: !!app.tiene_beca,
-      porcentaje_beca: app.porcentaje_beca || '',
       requiere_adaptaciones: !!app.requiere_adaptaciones,
       nota_adaptaciones: app.nota_adaptaciones || '',
     });
@@ -147,7 +144,6 @@ export default function ApplicantsPage({ user }) {
     try {
       await api.updateAdministrative(adminApplicant.id, {
         ...adminForm,
-        porcentaje_beca: adminForm.tiene_beca && adminForm.porcentaje_beca ? Number(adminForm.porcentaje_beca) : null,
         nota_adaptaciones: adminForm.requiere_adaptaciones ? adminForm.nota_adaptaciones || null : null,
       });
       setAdminMsg({ type: 'success', text: 'Datos guardados.' });
@@ -444,7 +440,7 @@ export default function ApplicantsPage({ user }) {
                           <button
                             className={app.retiro_solicitado ? 'btn btn-secondary' : 'btn btn-outline'}
                             style={{ padding: '6px 8px', fontSize: '0.8rem' }}
-                            title="Pago, beca, adaptaciones y retiro"
+                            title="Adaptaciones y retiro"
                             onClick={() => handleOpenAdmin(app)}
                           >
                             <ClipboardCheck size={15} />
@@ -572,36 +568,17 @@ export default function ApplicantsPage({ user }) {
         )}
       </Modal>
 
-      {/* Modal: Pago, beca, adaptaciones y retiro */}
+      {/* Modal: adaptaciones y retiro */}
       <Modal
         isOpen={!!adminApplicant}
         onClose={() => setAdminApplicant(null)}
-        title={`Datos administrativos - ${adminApplicant?.nombre_completo || ''}`}
+        title={`Adaptaciones y retiro - ${adminApplicant?.nombre_completo || ''}`}
       >
         {adminMsg && (
           <div className={adminMsg.type === 'error' ? 'notice-danger' : 'notice-success'} style={{ marginBottom: '14px' }}>{adminMsg.text}</div>
         )}
         {adminForm && (
           <form onSubmit={handleSaveAdmin}>
-            <div className="form-group">
-              <label className="form-label">Estado del pago</label>
-              <select className="form-select" value={adminForm.estado_pago} onChange={(e) => setAdminForm({ ...adminForm, estado_pago: e.target.value })}>
-                <option value="PENDIENTE">Pendiente</option>
-                <option value="PAGADO">Pagado</option>
-                <option value="EXONERADO">Exonerado</option>
-              </select>
-            </div>
-            <label style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '0.875rem', marginBottom: '10px' }}>
-              <input type="checkbox" checked={adminForm.tiene_beca} onChange={(e) => setAdminForm({ ...adminForm, tiene_beca: e.target.checked })} />
-              Tiene beca o descuento
-            </label>
-            {adminForm.tiene_beca && (
-              <div className="form-group">
-                <label className="form-label">Porcentaje de la beca</label>
-                <input type="number" min="1" max="100" className="form-input" value={adminForm.porcentaje_beca}
-                  onChange={(e) => setAdminForm({ ...adminForm, porcentaje_beca: e.target.value })} />
-              </div>
-            )}
             <label style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '0.875rem', marginBottom: '10px' }}>
               <input type="checkbox" checked={adminForm.requiere_adaptaciones} onChange={(e) => setAdminForm({ ...adminForm, requiere_adaptaciones: e.target.checked })} />
               Necesita adaptaciones (discapacidad u otra condición)

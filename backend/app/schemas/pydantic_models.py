@@ -193,9 +193,6 @@ class ApplicantListItem(BaseModel):
     tutor_id: Optional[int] = None
     programa_id: Optional[int] = None
     porcentaje_avance: float = 0.0
-    estado_pago: str = "PENDIENTE"
-    tiene_beca: bool = False
-    porcentaje_beca: Optional[int] = None
     requiere_adaptaciones: bool = False
     nota_adaptaciones: Optional[str] = None
     retiro_solicitado: bool = False

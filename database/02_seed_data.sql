@@ -330,12 +330,12 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM configuracion_sistema WHERE clave = 'MARGEN_BAJO_AVANCE')
         INSERT INTO configuracion_sistema (clave, valor, descripcion, categoria) VALUES ('MARGEN_BAJO_AVANCE', '25', N'Puntos por debajo del avance esperado para marcar riesgo medio', 'RIESGO');
     IF NOT EXISTS (SELECT 1 FROM configuracion_sistema WHERE clave = 'DIAS_RECORDATORIO')
-        INSERT INTO configuracion_sistema (clave, valor, descripcion, categoria) VALUES ('DIAS_RECORDATORIO', '5,3,1', N'Días antes del vencimiento en que se envía un recordatorio por correo', 'NOTIFICACIONES');
+        INSERT INTO configuracion_sistema (clave, valor, descripcion, categoria) VALUES ('DIAS_RECORDATORIO', '15,10,5,3,1', N'Días antes del vencimiento en que se envía un recordatorio por correo', 'NOTIFICACIONES');
 END
 GO
 
--- Recordatorios a 5, 3 y 1 días (si la base todavía tiene el valor anterior)
-UPDATE configuracion_sistema SET valor = '5,3,1' WHERE clave = 'DIAS_RECORDATORIO' AND valor = '15,10,5,3,1';
+-- Recordatorios a 15, 10, 5, 3 y 1 días (si la base quedó con el valor de la versión anterior)
+UPDATE configuracion_sistema SET valor = '15,10,5,3,1' WHERE clave = 'DIAS_RECORDATORIO' AND valor = '5,3,1';
 GO
 
 -- 18. Programas donde puede acompañar cada tutor

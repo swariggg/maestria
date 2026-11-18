@@ -41,7 +41,7 @@ def historial_inscripcion(db: Session, inscripcion: Inscripcion) -> list:
 
     # Retiro y datos administrativos
     textos = {"SOLICITAR_RETIRO": "Solicitó el retiro", "APROBAR_RETIRO": "Retiro aprobado",
-              "RECHAZAR_RETIRO": "Retiro rechazado", "DATOS_ADMINISTRATIVOS": "Pago, beca o adaptaciones actualizados"}
+              "RECHAZAR_RETIRO": "Retiro rechazado", "DATOS_ADMINISTRATIVOS": "Adaptaciones actualizadas"}
     for a in db.query(RegistroAuditoria).filter(
         RegistroAuditoria.entidad == "INSCRIPCION",
         RegistroAuditoria.entidad_id == str(inscripcion.id),
