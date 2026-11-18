@@ -3,7 +3,7 @@ import json
 from sqlalchemy.orm import Session
 from app.models.entities import (
     Inscripcion, RegistroAuditoria, SeguimientoPostulante, NotificacionCola, EntregaEvidencia,
-    VersionEvidencia, AsignacionCurso, DocumentoPostulante, AlertaRiesgo, AsignacionTutor
+    VersionEvidencia, AsignacionCurso, DocumentoPostulante, AlertaRiesgo
 )
 
 TIPO_CONTACTO = {
@@ -54,12 +54,6 @@ def historial_inscripcion(db: Session, inscripcion: Inscripcion) -> list:
         detalle = nuevo.get("motivo") or nuevo.get("observacion")
         eventos.append(_evento(a.fecha_creacion, "ESTADO", textos[a.accion], detalle,
                                a.usuario.nombre_completo if a.usuario else "Sistema"))
-
-    # Tutor
-    for t in db.query(AsignacionTutor).filter(AsignacionTutor.inscripcion_id == inscripcion.id).all():
-        eventos.append(_evento(t.fecha_asignacion, "TUTOR", f"Tutor asignado: {t.tutor.nombre_completo}",
-                               t.motivo_reasignacion if t.estado == "REASIGNADO" else None,
-                               t.coordinador.nombre_completo if t.coordinador else None))
 
     # Seguimientos del tutor
     for s in db.query(SeguimientoPostulante).filter(SeguimientoPostulante.inscripcion_id == inscripcion.id).all():

@@ -55,7 +55,7 @@ const ahoraInput = () => {
   return d.toISOString().slice(0, 16);
 };
 
-const CURSO_VACIO = { codigo: '', nombre: '', descripcion: '', nota_minima: 70 };
+const CURSO_VACIO = { codigo: '', nombre: '', descripcion: '', nota_minima: 70, tutor_id: '', motivo_tutor: '' };
 const actividadVacia = () => ({
   titulo: '',
   tipo: 'INDIVIDUAL',
@@ -86,6 +86,7 @@ export default function CoursesPage({ user }) {
   const [courseModal, setCourseModal] = useState(null); // { convocatoria, curso: null | objeto }
   const [courseForm, setCourseForm] = useState(CURSO_VACIO);
   const [courseError, setCourseError] = useState(null);
+  const [courseTutors, setCourseTutors] = useState([]);
   const [reqConv, setReqConv] = useState(null);
 
   // Modal Crear Programa
@@ -240,15 +241,23 @@ export default function CoursesPage({ user }) {
     }
   };
 
-  const openCourse = (convocatoria, curso = null) => {
+  const openCourse = async (convocatoria, curso = null) => {
     setCourseError(null);
     setCourseForm(curso ? {
       codigo: curso.codigo,
       nombre: curso.nombre,
       descripcion: curso.descripcion || '',
-      nota_minima: curso.nota_minima
+      nota_minima: curso.nota_minima,
+      tutor_id: curso.tutor_id || '',
+      motivo_tutor: ''
     } : CURSO_VACIO);
     setCourseModal({ convocatoria, curso });
+    try {
+      // Solo los tutores que trabajan en el programa de la convocatoria
+      setCourseTutors(await api.getTutors(convocatoria?.programa_id));
+    } catch (err) {
+      setCourseTutors([]);
+    }
   };
 
   const setCourseField = (campo) => (e) => {
@@ -259,8 +268,10 @@ export default function CoursesPage({ user }) {
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     setCourseError(null);
+    const tutorId = courseForm.tutor_id ? parseInt(courseForm.tutor_id) : null;
     const datos = {
-      ...courseForm,
+      codigo: courseForm.codigo,
+      nombre: courseForm.nombre,
       descripcion: courseForm.descripcion || null,
       nota_minima: parseFloat(courseForm.nota_minima)
     };
@@ -268,9 +279,12 @@ export default function CoursesPage({ user }) {
       let guardado;
       if (courseModal.curso) {
         guardado = await api.updateCourse(courseModal.curso.id, datos);
+        if (tutorId && tutorId !== courseModal.curso.tutor_id) {
+          guardado = await api.setCourseTutor(courseModal.curso.id, { tutor_id: tutorId, motivo: courseForm.motivo_tutor || null });
+        }
         setProgSuccess(`Curso ${guardado.codigo} actualizado.`);
       } else {
-        guardado = await api.createCourse({ convocatoria_id: courseModal.convocatoria.id, ...datos });
+        guardado = await api.createCourse({ convocatoria_id: courseModal.convocatoria.id, ...datos, tutor_id: tutorId });
         setProgSuccess(`Curso ${guardado.codigo} creado y asignado a los inscritos de ${courseModal.convocatoria.codigo}.`);
       }
       await reloadCourses(guardado.id);
@@ -597,6 +611,9 @@ export default function CoursesPage({ user }) {
                   <div style={{ fontSize: '0.9rem', marginTop: '4px', color: 'var(--text-main)', fontWeight: 500 }}>
                     {crs.nombre}
                   </div>
+                  <small style={{ display: 'block', color: crs.tutor_nombre ? 'var(--text-sec)' : 'var(--status-warning-text)' }}>
+                    Tutor: {crs.tutor_nombre || 'sin asignar'}
+                  </small>
                   <small style={{ color: 'var(--text-sec)' }}>Nota mínima de aprobación: {crs.nota_minima} pts</small>
                 </div>
               );
@@ -957,6 +974,28 @@ export default function CoursesPage({ user }) {
             <label className="form-label">Nota mínima para aprobar (0 a 100)</label>
             <input type="number" className="form-input" min="0" max="100" step="0.5" value={courseForm.nota_minima} onChange={setCourseField('nota_minima')} required />
           </div>
+          <div className="form-group">
+            <label className="form-label">Tutor del curso</label>
+            <select className="form-select" value={courseForm.tutor_id} onChange={setCourseField('tutor_id')}>
+              <option value="">Sin tutor todavía</option>
+              {courseTutors.map((t) => (
+                <option key={t.usuario_id} value={t.usuario_id} disabled={!t.activo}>
+                  {t.nombre_completo} ({t.especialidad}){t.activo ? '' : ' · inactivo'}
+                </option>
+              ))}
+            </select>
+            <small style={{ display: 'block', marginTop: '4px' }}>
+              {courseTutors.length === 0
+                ? 'Ningún tutor trabaja en este programa. El administrador puede agregarlo en Usuarios.'
+                : 'Cada curso necesita su tutor para poder abrir la convocatoria.'}
+            </small>
+          </div>
+          {courseModal?.curso?.tutor_id && courseForm.tutor_id && parseInt(courseForm.tutor_id) !== courseModal.curso.tutor_id && (
+            <div className="form-group">
+              <label className="form-label">Motivo del cambio de tutor *</label>
+              <input className="form-input" value={courseForm.motivo_tutor} onChange={setCourseField('motivo_tutor')} minLength={5} required />
+            </div>
+          )}
           {!courseModal?.curso && (
             <small style={{ display: 'block', marginBottom: '8px' }}>
               El curso se asigna automáticamente a todos los inscritos vigentes de la convocatoria.

@@ -10,7 +10,7 @@ from typing import Dict, Tuple
 from sqlalchemy.orm import Session
 from app.models.entities import (
     Inscripcion, AlertaRiesgo, SeguimientoPostulante, CompromisoSeguimiento,
-    EntregaEvidencia, ActividadCurso, AsignacionTutor
+    EntregaEvidencia, ActividadCurso
 )
 from app.services import parametros
 from app.services.progress_service import (
@@ -208,12 +208,10 @@ def evaluate_applicant_risk(db: Session, inscripcion_id: int, ahora: datetime = 
 
     # El tutor recibe un correo por cada alerta nueva
     if nuevas:
-        asig = db.query(AsignacionTutor).filter(
-            AsignacionTutor.inscripcion_id == inscripcion.id, AsignacionTutor.estado == "ACTIVO"
-        ).first()
-        if asig:
-            from app.services.process_emails import correo_alerta_nueva
-            correo_alerta_nueva(db, inscripcion, asig.tutor, nuevas)
+        from app.services.process_emails import correo_alerta_nueva
+        from app.services.tutoria import tutores_de_inscripcion
+        for tutor in tutores_de_inscripcion(db, inscripcion):
+            correo_alerta_nueva(db, inscripcion, tutor, nuevas)
 
     return {
         "inscripcion_id": inscripcion.id,

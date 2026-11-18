@@ -8,10 +8,11 @@ from datetime import datetime, date, timedelta
 from html import escape
 from sqlalchemy.orm import Session
 from app.models.entities import (
-    Convocatoria, Inscripcion, AsignacionTutor, SeguimientoPostulante, CompromisoSeguimiento,
+    Convocatoria, Inscripcion, SeguimientoPostulante, CompromisoSeguimiento,
     EntregaEvidencia, AsignacionCurso, DocumentoPostulante, CoordinadorPrograma, Usuario, Rol,
     NotificacionCola, RegistroAuditoria
 )
+from app.services.tutoria import inscripciones_del_tutor
 from app.services.progress_service import ESTADOS_INSCRIPCION_CERRADA
 from app.services.process_emails import _enviar
 
@@ -34,8 +35,7 @@ def cerrar_inscripciones_vencidas(db: Session, hoy: date = None) -> dict:
 
 
 def _inscripciones_del_tutor(db: Session, tutor_id: int) -> list:
-    return db.query(Inscripcion).join(AsignacionTutor, AsignacionTutor.inscripcion_id == Inscripcion.id).filter(
-        AsignacionTutor.tutor_id == tutor_id, AsignacionTutor.estado == "ACTIVO",
+    return inscripciones_del_tutor(db, tutor_id).filter(
         Inscripcion.estado_proceso.notin_(ESTADOS_INSCRIPCION_CERRADA)
     ).all()
 

@@ -351,4 +351,13 @@ BEGIN
 END
 GO
 
+-- 19. Tutor de cada curso: el tutor del programa (solo cursos que todavía no tienen)
+UPDATE c SET c.tutor_id = tp.tutor_id
+FROM cursos_preparatorios c
+JOIN convocatorias cv ON cv.id = c.convocatoria_id
+JOIN tutores_programa tp ON tp.programa_id = cv.programa_id AND tp.activo = 1
+WHERE c.tutor_id IS NULL
+  AND tp.id = (SELECT MIN(t2.id) FROM tutores_programa t2 WHERE t2.programa_id = cv.programa_id AND t2.activo = 1);
+GO
+
 PRINT N'Demostración completa y configurada al 100% en app_maestria.';

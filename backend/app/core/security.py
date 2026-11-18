@@ -114,13 +114,9 @@ def verify_applicant_access(user, postulante_usuario_id: int, db: Session) -> bo
     if user.rol.codigo == 'POSTULANTE':
         return user.id == postulante_usuario_id
     if user.rol.codigo == 'TUTOR':
-        from app.models.entities import AsignacionTutor, Inscripcion
-        asignacion = db.query(AsignacionTutor).join(Inscripcion).filter(
-            Inscripcion.postulante_id == postulante_usuario_id,
-            AsignacionTutor.tutor_id == user.id,
-            AsignacionTutor.estado == 'ACTIVO'
-        ).first()
-        return bool(asignacion)
+        from app.services.tutoria import inscripciones_del_tutor
+        from app.models.entities import Inscripcion
+        return inscripciones_del_tutor(db, user.id).filter(Inscripcion.postulante_id == postulante_usuario_id).first() is not None
     if user.rol.codigo == 'COORDINADOR':
         from app.models.entities import CoordinadorPrograma, Inscripcion, Convocatoria
         coord_asignado = db.query(CoordinadorPrograma).join(
@@ -148,9 +144,10 @@ def programas_del_coordinador(user, db: Session) -> list:
 def inscripciones_visibles(user, db: Session):
     """
     Consulta de inscripciones que el usuario puede ver según su rol:
-    ADMIN todas, COORDINADOR las de sus programas, TUTOR las de sus postulantes, POSTULANTE las suyas.
+    ADMIN todas, COORDINADOR las de sus programas, TUTOR las de los postulantes de sus cursos, POSTULANTE las suyas.
     """
-    from app.models.entities import Inscripcion, Convocatoria, AsignacionTutor
+    from app.models.entities import Inscripcion, Convocatoria
+    from app.services.tutoria import subconsulta_inscripciones_tutor
     query = db.query(Inscripcion)
     rol = user.rol.codigo
     if rol == "ADMIN":
@@ -160,15 +157,12 @@ def inscripciones_visibles(user, db: Session):
             Convocatoria.programa_id.in_(programas_del_coordinador(user, db))
         )
     if rol == "TUTOR":
-        return query.join(AsignacionTutor, AsignacionTutor.inscripcion_id == Inscripcion.id).filter(
-            AsignacionTutor.tutor_id == user.id,
-            AsignacionTutor.estado == "ACTIVO"
-        )
+        return query.filter(Inscripcion.id.in_(subconsulta_inscripciones_tutor(db, user.id)))
     return query.filter(Inscripcion.postulante_id == user.id)
 
 
 def cursos_visibles(user, db: Session):
-    """Cursos que el usuario puede ver: el coordinador los de sus programas; tutor y postulante, los asignados."""
+    """Cursos que el usuario puede ver: el coordinador los de sus programas, el tutor los que dicta y el postulante los suyos."""
     from app.models.entities import CursoPreparatorio, Convocatoria, AsignacionCurso
     query = db.query(CursoPreparatorio)
     rol = user.rol.codigo
@@ -178,16 +172,10 @@ def cursos_visibles(user, db: Session):
         return query.join(Convocatoria, Convocatoria.id == CursoPreparatorio.convocatoria_id).filter(
             Convocatoria.programa_id.in_(programas_del_coordinador(user, db))
         )
+    if rol == "TUTOR":
+        return query.filter(CursoPreparatorio.tutor_id == user.id)
     ids_insc = [i.id for i in inscripciones_visibles(user, db).all()]
     ids_cursos = [c[0] for c in db.query(AsignacionCurso.curso_id).filter(
         AsignacionCurso.inscripcion_id.in_(ids_insc)
     ).distinct().all()]
-    if rol == "TUTOR":
-        # El tutor también ve los cursos de los programas donde puede acompañar (rúbricas y materiales)
-        from app.models.entities import TutorPrograma
-        programas = [p[0] for p in db.query(TutorPrograma.programa_id).filter(
-            TutorPrograma.tutor_id == user.id, TutorPrograma.activo == True).all()]
-        ids_cursos += [c[0] for c in db.query(CursoPreparatorio.id).join(
-            Convocatoria, Convocatoria.id == CursoPreparatorio.convocatoria_id
-        ).filter(Convocatoria.programa_id.in_(programas)).all()]
     return query.filter(CursoPreparatorio.id.in_(set(ids_cursos)))

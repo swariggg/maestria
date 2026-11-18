@@ -175,17 +175,22 @@ def correo_proceso_no_aprobado(db: Session, inscripcion: Inscripcion):
                    "UIDE: Resultado del curso preparatorio", "Resultado del preparatorio", cuerpo)
 
 
-def correo_tutor_asignado(db: Session, inscripcion: Inscripcion, tutor: Usuario):
-    programa = inscripcion.convocatoria.programa.nombre
-    postulante = inscripcion.postulante
+def correo_tutor_curso(db: Session, curso):
+    """Al tutor nuevo del curso, y a los postulantes del curso para que sepan quién les acompaña."""
+    tutor = curso.tutor
+    programa = curso.convocatoria.programa.nombre
     _enviar(db, tutor, "TUTOR_ASIGNADO",
-            f"UIDE: Nuevo postulante asignado - {postulante.nombre_completo}", "Nuevo postulante asignado",
-            f"<p>Se le asignó como tutor(a) de <strong>{escape(postulante.nombre_completo)}</strong> "
-            f"({escape(postulante.email)}) en <strong>{escape(programa)}</strong>.</p>")
-    _enviar(db, postulante, "TUTOR_ASIGNADO",
-            "UIDE: Su tutor del preparatorio", "Tutor asignado",
-            f"<p>Su tutor(a) del preparatorio es <strong>{escape(tutor.nombre_completo)}</strong> "
-            f"({escape(tutor.email)}). Le acompañará durante el proceso.</p>")
+            f"UIDE: Tutor(a) del curso {curso.nombre}", "Nuevo curso a su cargo",
+            f"<p>Se le asignó como tutor(a) del curso <strong>{escape(curso.nombre)}</strong> "
+            f"de <strong>{escape(programa)}</strong>.</p>")
+    for asig in curso.asignaciones:
+        postulante = asig.inscripcion.postulante
+        if asig.inscripcion.estado_proceso in ("APROBADO", "NO_APROBADO", "RETIRADO"):
+            continue
+        _enviar(db, postulante, "TUTOR_ASIGNADO",
+                f"UIDE: Su tutor(a) de {curso.nombre}", "Tutor asignado",
+                f"<p>Su tutor(a) del curso <strong>{escape(curso.nombre)}</strong> es "
+                f"<strong>{escape(tutor.nombre_completo)}</strong> ({escape(tutor.email)}).</p>")
 
 
 def correo_documento_cargado(db: Session, inscripcion: Inscripcion, nombre_requisito: str, archivo: str):

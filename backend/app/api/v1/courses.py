@@ -7,10 +7,10 @@ from app.core.database import get_db
 from app.core.security import get_current_user, require_roles, verify_program_access, cursos_visibles
 from app.models.entities import (
     CursoPreparatorio, ActividadCurso, Convocatoria, Usuario, RegistroAuditoria,
-    EntregaEvidencia, VersionEvidencia, EvaluacionEvidencia, Inscripcion, CriterioEvaluacion, TutorPrograma
+    EntregaEvidencia, VersionEvidencia, EvaluacionEvidencia, Inscripcion, CriterioEvaluacion, TutorPrograma, Tutor
 )
 from app.schemas.pydantic_models import (
-    CourseOut, CourseCreate, CourseUpdate, ActivityOut, ActivityCreate, ActivityUpdate
+    CourseOut, CourseCreate, CourseUpdate, CourseTutorUpdate, ActivityOut, ActivityCreate, ActivityUpdate
 )
 from app.services.process_emails import correo_proceso_aprobado
 from app.services.progress_service import (
@@ -106,6 +106,21 @@ def _auditar(db, usuario_id, accion, entidad, entidad_id, antes=None, despues=No
     ))
 
 
+def _validar_tutor_curso(db: Session, curso: CursoPreparatorio, tutor_id: int) -> Usuario:
+    """El tutor debe estar activo y trabajar en el programa del curso (lo define el administrador en Usuarios)."""
+    tutor = db.query(Tutor).filter(Tutor.usuario_id == tutor_id).first()
+    if not tutor or not tutor.activo or tutor.usuario.rol.codigo != "TUTOR" or tutor.usuario.estado != "ACTIVO":
+        raise HTTPException(status_code=404, detail="El tutor seleccionado no existe o no está activo.")
+    programa_id = curso.convocatoria.programa_id
+    trabaja = db.query(TutorPrograma).filter(
+        TutorPrograma.tutor_id == tutor_id, TutorPrograma.programa_id == programa_id, TutorPrograma.activo == True  # noqa: E712
+    ).first()
+    if not trabaja:
+        raise HTTPException(status_code=400, detail=f"{tutor.usuario.nombre_completo} no trabaja en el programa "
+                            f"{curso.convocatoria.programa.codigo}. El administrador puede agregarlo en Usuarios.")
+    return tutor.usuario
+
+
 # ---------- Cursos ----------
 
 @router.get("", response_model=List[CourseOut])
@@ -138,6 +153,9 @@ def create_course(
     )
     db.add(curso)
     db.flush()
+    if data.tutor_id:
+        _validar_tutor_curso(db, curso, data.tutor_id)
+        curso.tutor_id = data.tutor_id
 
     # Los postulantes ya inscritos en la convocatoria también reciben el curso nuevo
     asignados = asignar_curso_a_inscritos(db, curso)
@@ -176,6 +194,38 @@ def update_course(
     db.commit()
     _avisar_aprobados(db, aprobados)
     db.refresh(curso)
+    return curso
+
+
+@router.put("/{curso_id}/tutor", response_model=CourseOut)
+def set_course_tutor(
+    curso_id: int,
+    data: CourseTutorUpdate,
+    current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR")),
+    db: Session = Depends(get_db)
+):
+    """Asigna o cambia el tutor del curso. Cambiarlo cuando ya había uno pide motivo."""
+    curso = db.query(CursoPreparatorio).filter(CursoPreparatorio.id == curso_id).first()
+    if not curso:
+        raise HTTPException(status_code=404, detail="Curso no encontrado.")
+    if not verify_program_access(current_user, curso.convocatoria.programa_id, db):
+        raise HTTPException(status_code=403, detail="No tiene permiso sobre el programa de este curso.")
+    if curso.convocatoria.estado == "FINALIZADA":
+        raise HTTPException(status_code=400, detail="La convocatoria está finalizada.")
+    if curso.tutor_id == data.tutor_id:
+        raise HTTPException(status_code=400, detail="Ese tutor ya está a cargo del curso.")
+    tutor = _validar_tutor_curso(db, curso, data.tutor_id)
+    motivo = (data.motivo or "").strip()
+    if curso.tutor_id and len(motivo) < 5:
+        raise HTTPException(status_code=400, detail="Para cambiar el tutor indique el motivo (al menos 5 caracteres).")
+    anterior = curso.tutor_id
+    curso.tutor_id = tutor.id
+    _auditar(db, current_user.id, "ASIGNAR_TUTOR_CURSO", "CURSO_PREPARATORIO", curso.id,
+             antes={"tutor_id": anterior}, despues={"tutor_id": tutor.id, "motivo": motivo or None})
+    db.commit()
+    db.refresh(curso)
+    from app.services.process_emails import correo_tutor_curso
+    correo_tutor_curso(db, curso)
     return curso
 
 
@@ -367,9 +417,7 @@ def set_criteria(
         raise HTTPException(status_code=404, detail="Actividad no encontrada.")
     programa_id = act.curso.convocatoria.programa_id
     if current_user.rol.codigo == "TUTOR":
-        permitido = db.query(TutorPrograma).filter(
-            TutorPrograma.tutor_id == current_user.id, TutorPrograma.programa_id == programa_id, TutorPrograma.activo == True
-        ).first()
+        permitido = act.curso.tutor_id == current_user.id
     else:
         permitido = verify_program_access(current_user, programa_id, db)
     if not permitido:

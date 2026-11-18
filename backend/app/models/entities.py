@@ -107,10 +107,17 @@ class CursoPreparatorio(Base):
     nota_minima = Column(Numeric(5, 2), default=70.00)
     ponderacion_total = Column(Numeric(5, 2), default=100.00)
     estado = Column(String(20), default="ACTIVO")
+    tutor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)  # un tutor por curso, obligatorio para iniciar
     creado_en = Column(DateTime, default=datetime.utcnow)
 
     convocatoria = relationship("Convocatoria", back_populates="cursos")
+    tutor = relationship("Usuario", foreign_keys=[tutor_id])
     actividades = relationship("ActividadCurso", back_populates="curso")
+
+    @property
+    def tutor_nombre(self):
+        return self.tutor.nombre_completo if self.tutor else None
+
     asignaciones = relationship("AsignacionCurso", back_populates="curso")
 
 class ActividadCurso(Base):

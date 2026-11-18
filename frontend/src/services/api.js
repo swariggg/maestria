@@ -77,6 +77,7 @@ export const api = {
   getActivities: (cursoId) => apiRequest(`/cursos/${cursoId}/actividades`),
   createActivity: (data) => apiRequest('/cursos/actividades', { method: 'POST', body: JSON.stringify(data) }),
   updateCourse: (id, data) => apiRequest(`/cursos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  setCourseTutor: (id, data) => apiRequest(`/cursos/${id}/tutor`, { method: 'PUT', body: JSON.stringify(data) }),
   updateActivity: (id, data) => apiRequest(`/cursos/actividades/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteActivity: (id) => apiRequest(`/cursos/actividades/${id}`, { method: 'DELETE' }),
   getCriteria: (actividadId) => apiRequest(`/cursos/actividades/${actividadId}/criterios`),
@@ -131,7 +132,6 @@ export const api = {
 
   // Tutores
   getTutors: (programaId) => apiRequest(`/tutores${programaId ? `?programa_id=${programaId}` : ''}`),
-  assignTutor: (data) => apiRequest('/tutores/asignar', { method: 'POST', body: JSON.stringify(data) }),
 
   // Seguimientos
   getFollowups: (inscripcionId) => apiRequest(`/seguimientos/inscripcion/${inscripcionId}`),

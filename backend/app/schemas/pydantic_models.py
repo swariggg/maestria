@@ -121,6 +121,11 @@ class CourseCreate(BaseModel):
     descripcion: Optional[str] = None
     nota_minima: float = Field(70.0, ge=0, le=100)
     ponderacion_total: float = Field(100.0, gt=0, le=100)
+    tutor_id: Optional[int] = None
+
+class CourseTutorUpdate(BaseModel):
+    tutor_id: int
+    motivo: Optional[str] = Field(default=None, max_length=255)
 
 class CourseUpdate(BaseModel):
     codigo: str = Field(min_length=2, max_length=50)
@@ -170,6 +175,8 @@ class CourseOut(BaseModel):
     nota_minima: float
     ponderacion_total: float
     estado: str
+    tutor_id: Optional[int] = None
+    tutor_nombre: Optional[str] = None
     actividades: List[ActivityOut] = []
 
     class Config:
@@ -286,11 +293,6 @@ class EvidenceOut(BaseModel):
     versiones: List[EvidenceVersionOut] = []
 
 # --- TUTORES Y SEGUIMIENTOS ---
-class AssignTutorRequest(BaseModel):
-    inscripcion_id: int
-    tutor_id: int
-    motivo: Optional[str] = None
-
 class CompromisoIn(BaseModel):
     descripcion: str = Field(min_length=3, max_length=500)
     fecha_compromiso: date

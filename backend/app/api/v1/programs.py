@@ -12,6 +12,8 @@ from app.schemas.pydantic_models import (
 )
 
 from app.services.progress_service import cerrar_convocatoria, reabrir_convocatoria, inscritos_vigentes
+from app.services.tutoria import cursos_sin_tutor
+from app.models.entities import CursoPreparatorio
 from app.services.process_emails import correo_proceso_aprobado, correo_proceso_no_aprobado
 
 router = APIRouter(prefix="/programas", tags=["Programas y Convocatorias"])
@@ -225,6 +227,16 @@ def change_convocatoria_estado(
     motivo = (data.motivo or "").strip()
     if conv.estado == "EN_CURSO" and nuevo_estado == "ABIERTA" and conv.fecha_cierre < date.today():
         raise HTTPException(status_code=400, detail="Para reabrir las inscripciones, primero ponga una nueva fecha de cierre (hoy o después).")
+    if conv.estado == "PLANIFICADA" and nuevo_estado == "ABIERTA":
+        # No se abre una convocatoria sin cursos ni con cursos sin tutor
+        hay_cursos = db.query(CursoPreparatorio.id).filter(
+            CursoPreparatorio.convocatoria_id == conv.id, CursoPreparatorio.estado == "ACTIVO").first()
+        if not hay_cursos:
+            raise HTTPException(status_code=400, detail="Agregue al menos un curso preparatorio antes de abrir la convocatoria.")
+        faltan = cursos_sin_tutor(db, conv.id)
+        if faltan:
+            raise HTTPException(status_code=400, detail="Cada curso necesita un tutor antes de abrir la convocatoria. Sin tutor: "
+                                + ", ".join(c.nombre for c in faltan) + ".")
     if conv.estado == "FINALIZADA" and len(motivo) < 5:
         raise HTTPException(status_code=400, detail="Para reabrir una convocatoria finalizada indique el motivo (al menos 5 caracteres).")
 

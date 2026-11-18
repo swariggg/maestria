@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user, require_roles, verify_applicant_access
 from app.models.entities import (
     Usuario, VersionEvidencia, EntregaEvidencia, EvaluacionEvidencia, 
-    AsignacionCurso, ActividadCurso, RegistroAuditoria, AsignacionTutor, CriterioEvaluacion, PuntajeCriterio
+    AsignacionCurso, ActividadCurso, RegistroAuditoria, CriterioEvaluacion, PuntajeCriterio
 )
 from app.schemas.pydantic_models import EvaluationCreate, EvaluationOut
 from app.services.risk_engine import evaluate_applicant_risk
@@ -19,19 +19,16 @@ from app.services.progress_service import (
 RESULTADOS = ["APROBADO", "REQUIERE_CORRECCION", "RECHAZADO"]
 
 
-def _validar_evaluador(db: Session, user: Usuario, inscripcion) -> None:
-    """Califica el tutor asignado. El coordinador o el admin solo cuando el postulante no tiene tutor."""
-    tutor = db.query(AsignacionTutor).filter(
-        AsignacionTutor.inscripcion_id == inscripcion.id, AsignacionTutor.estado == "ACTIVO"
-    ).first()
-    if tutor:
-        if user.id != tutor.tutor_id:
+def _validar_evaluador(db: Session, user: Usuario, curso) -> None:
+    """Califica el tutor del curso. El coordinador o el admin solo cuando el curso todavía no tiene tutor."""
+    if curso.tutor_id:
+        if user.id != curso.tutor_id:
             raise HTTPException(
                 status_code=403,
-                detail=f"Este postulante tiene como tutor a {tutor.tutor.nombre_completo}; solo su tutor puede calificar."
+                detail=f"El tutor de {curso.nombre} es {curso.tutor.nombre_completo}; solo él o ella puede calificar."
             )
     elif user.rol.codigo == "TUTOR":
-        raise HTTPException(status_code=403, detail="No es el tutor asignado de este postulante.")
+        raise HTTPException(status_code=403, detail="No es el tutor de este curso.")
 
 
 def _puntaje_con_rubrica(db: Session, actividad: ActividadCurso, data: EvaluationCreate):
@@ -86,7 +83,7 @@ def evaluate_evidence_version(
     if inscripcion.convocatoria.estado not in CONV_PERMITE_CALIFICAR:
         raise HTTPException(status_code=400, detail=f"{mensaje_convocatoria(inscripcion.convocatoria)} No se pueden registrar calificaciones.")
 
-    _validar_evaluador(db, current_user, inscripcion)
+    _validar_evaluador(db, current_user, asig_curso.curso)
     if data.resultado not in RESULTADOS:
         raise HTTPException(status_code=400, detail=f"Resultado inválido. Use: {', '.join(RESULTADOS)}.")
     if version.id != max(v.id for v in entrega.versiones):

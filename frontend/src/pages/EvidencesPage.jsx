@@ -47,9 +47,11 @@ export default function EvidencesPage({ user }) {
   // El backend decide según el estado de la convocatoria y de la inscripción
   const permiteEntregas = avance ? avance.permite_entregas !== false : true;
   const permiteCalificar = avance ? avance.permite_calificar !== false : true;
-  // Califica el tutor asignado; coordinación o administración solo si el postulante no tiene tutor
-  const postulanteSel = applicants.find((a) => a.id === selectedInscId);
-  const puedeCalificarRol = role === 'TUTOR' || (['ADMIN', 'COORDINADOR'].includes(role) && !postulanteSel?.tutor_id);
+  // Califica el tutor del curso; coordinación o administración solo si el curso todavía no tiene tutor
+  const cursoSel = cursos.find((c) => c.curso_id === selectedCourseId);
+  const puedeCalificarRol = role === 'TUTOR'
+    ? cursoSel?.tutor_id === user?.id
+    : ['ADMIN', 'COORDINADOR'].includes(role) && !cursoSel?.tutor_id;
   const ultimaVersionId = evidenceData?.versiones?.length ? evidenceData.versiones[evidenceData.versiones.length - 1].id : null;
   const totalRubrica = criterios.reduce((suma, c) => suma + (parseFloat(evalPuntajes[c.id]) || 0), 0);
 

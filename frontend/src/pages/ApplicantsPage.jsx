@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Filter, 
-  UserPlus, 
   MessageSquare, 
   FileDown, 
   PhoneCall, 
@@ -32,15 +31,10 @@ export default function ApplicantsPage({ user }) {
 
   // Modales
   const [selectedApplicant, setSelectedApplicant] = useState(null);
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showFollowupModal, setShowFollowupModal] = useState(false);
   const [docsApplicant, setDocsApplicant] = useState(null);
 
   // Tutores
-  const [tutors, setTutors] = useState([]);
-  const [selectedTutorId, setSelectedTutorId] = useState('');
-  const [assignError, setAssignError] = useState(null);
-  const [assignMotivo, setAssignMotivo] = useState('');
 
   // Datos administrativos y retiro
   const [adminApplicant, setAdminApplicant] = useState(null);
@@ -94,38 +88,6 @@ export default function ApplicantsPage({ user }) {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     loadApplicants();
-  };
-
-  // Abrir Modal de Asignación de Tutor
-  const handleOpenAssign = async (applicant) => {
-    setSelectedApplicant(applicant);
-    setAssignError(null);
-    setAssignMotivo('');
-    setSelectedTutorId('');
-    try {
-      // Solo los tutores que trabajan en el programa del postulante
-      const tutorList = await api.getTutors(applicant.programa_id);
-      setTutors(tutorList);
-      setShowAssignModal(true);
-    } catch (err) {
-      alert(`Error cargando tutores: ${err.message}`);
-    }
-  };
-
-  const handleSaveAssignment = async (e) => {
-    e.preventDefault();
-    if (!selectedTutorId) return;
-    try {
-      await api.assignTutor({
-        inscripcion_id: selectedApplicant.id,
-        tutor_id: parseInt(selectedTutorId),
-        motivo: assignMotivo || null
-      });
-      setShowAssignModal(false);
-      loadApplicants();
-    } catch (err) {
-      setAssignError(err.message);
-    }
   };
 
   const handleOpenAdmin = (app) => {
@@ -372,7 +334,7 @@ export default function ApplicantsPage({ user }) {
                   <th>Postulante</th>
                   <th>Programa / Convocatoria</th>
                   <th>Avance</th>
-                  <th>Tutor Asignado</th>
+                  <th>Tutores</th>
                   <th>Estado</th>
                   <th>Nivel de Riesgo</th>
                   <th style={{ textAlign: 'center' }}>Acciones</th>
@@ -406,7 +368,7 @@ export default function ApplicantsPage({ user }) {
                       {app.tutor_nombre ? (
                         <span>{app.tutor_nombre}</span>
                       ) : (
-                        <span style={{ color: 'var(--status-warning-text)', fontStyle: 'italic' }}>Sin Tutor</span>
+                        <span style={{ color: 'var(--status-warning-text)', fontStyle: 'italic' }}>Sin tutor</span>
                       )}
                     </td>
                     <td>
@@ -425,17 +387,6 @@ export default function ApplicantsPage({ user }) {
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'inline-flex', gap: '6px' }}>
-                        {['ADMIN', 'COORDINADOR'].includes(role) && (
-                          <button
-                            className="btn btn-outline"
-                            style={{ padding: '6px 8px', fontSize: '0.8rem' }}
-                            title="Asignar o Cambiar Tutor"
-                            onClick={() => handleOpenAssign(app)}
-                          >
-                            <UserPlus size={15} />
-                          </button>
-                        )}
-
                         {['ADMIN', 'COORDINADOR'].includes(role) && (
                           <button
                             className={app.retiro_solicitado ? 'btn btn-secondary' : 'btn btn-outline'}
@@ -502,59 +453,6 @@ export default function ApplicantsPage({ user }) {
           </div>
         )}
       </div>
-
-      {/* Modal: Asignar Tutor */}
-      <Modal
-        isOpen={showAssignModal}
-        onClose={() => setShowAssignModal(false)}
-        title={`Asignar Tutor - ${selectedApplicant?.nombre_completo}`}
-      >
-        {assignError && (
-          <div style={{ background: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', padding: '10px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.875rem' }}>
-            {assignError}
-          </div>
-        )}
-        <form onSubmit={handleSaveAssignment}>
-          <div className="form-group">
-            <label className="form-label">Seleccionar Tutor Académico</label>
-            <select
-              className="form-select"
-              value={selectedTutorId}
-              onChange={(e) => setSelectedTutorId(e.target.value)}
-              required
-            >
-              <option value="">-- Elija un tutor --</option>
-              {tutors.map((t) => (
-                <option key={t.usuario_id} value={t.usuario_id} disabled={t.disponible === false}>
-                  {t.nombre_completo} ({t.especialidad}) · {t.postulantes_asignados} de {t.max_postulantes} postulantes
-                  {t.disponible === false ? (t.activo ? ' · sin cupo' : ' · inactivo') : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {tutors.length === 0 && (
-            <small style={{ display: 'block', color: 'var(--status-warning-text)' }}>
-              Ningún tutor trabaja en este programa. El administrador puede agregarlo en Usuarios.
-            </small>
-          )}
-          {selectedApplicant?.tutor_id && (
-            <div className="form-group">
-              <label className="form-label">Motivo del cambio de tutor *</label>
-              <input className="form-input" value={assignMotivo} onChange={(e) => setAssignMotivo(e.target.value)} minLength={5} required />
-            </div>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-            <button type="button" className="btn btn-outline" onClick={() => setShowAssignModal(false)}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Confirmar Asignación
-            </button>
-          </div>
-        </form>
-      </Modal>
 
       {/* Modal: Documentos del postulante */}
       <Modal

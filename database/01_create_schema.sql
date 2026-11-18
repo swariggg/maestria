@@ -690,4 +690,9 @@ BEGIN
 END
 GO
 
+-- 33. Un tutor por curso preparatorio (obligatorio para abrir la convocatoria)
+IF COL_LENGTH('cursos_preparatorios', 'tutor_id') IS NULL
+    ALTER TABLE cursos_preparatorios ADD tutor_id INT NULL CONSTRAINT FK_curso_tutor FOREIGN KEY REFERENCES usuarios(id);
+GO
+
 PRINT N'Esquema completo de APP - Maestría creado exitosamente en app_maestria.';

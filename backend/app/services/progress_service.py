@@ -115,6 +115,8 @@ def calcular_avance(db: Session, inscripcion: Inscripcion) -> dict:
             "curso_id": asig.curso_id,
             "codigo": asig.curso.codigo,
             "nombre": asig.curso.nombre,
+            "tutor_id": asig.curso.tutor_id,
+            "tutor_nombre": asig.curso.tutor.nombre_completo if asig.curso.tutor else None,
             "nota_minima": float(asig.curso.nota_minima),
             "nota_final": float(asig.nota_final) if asig.nota_final is not None else None,
             "estado_aprobacion": asig.estado_aprobacion,

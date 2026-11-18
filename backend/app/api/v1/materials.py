@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import get_current_user, require_roles, verify_program_access, cursos_visibles
-from app.models.entities import Usuario, CursoPreparatorio, MaterialCurso, TutorPrograma, RegistroAuditoria
+from app.models.entities import Usuario, CursoPreparatorio, MaterialCurso, RegistroAuditoria
 
 router = APIRouter(prefix="/materiales", tags=["Materiales del curso"])
 
@@ -25,12 +25,9 @@ MAX_MB = 50
 
 
 def _puede_gestionar(db: Session, user: Usuario, curso: CursoPreparatorio) -> bool:
-    programa_id = curso.convocatoria.programa_id
     if user.rol.codigo == "TUTOR":
-        return bool(db.query(TutorPrograma).filter(
-            TutorPrograma.tutor_id == user.id, TutorPrograma.programa_id == programa_id, TutorPrograma.activo == True
-        ).first())
-    return verify_program_access(user, programa_id, db)
+        return curso.tutor_id == user.id
+    return verify_program_access(user, curso.convocatoria.programa_id, db)
 
 
 def _out(m: MaterialCurso) -> dict:

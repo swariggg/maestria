@@ -5,9 +5,10 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.entities import (
     Usuario, Inscripcion, CursoPreparatorio, ActividadCurso, 
-    AsignacionCurso, EntregaEvidencia, AsignacionTutor, 
+    AsignacionCurso, EntregaEvidencia, 
     SeguimientoPostulante, CoordinadorPrograma, Convocatoria, MaterialCurso
 )
+from app.services.tutoria import inscripciones_del_tutor
 from app.schemas.pydantic_models import DashboardStats
 from app.services.progress_service import calcular_avance, asignaciones_del_postulante, inscripcion_cerrada
 
@@ -91,11 +92,7 @@ def get_dashboard_stats(current_user: Usuario = Depends(get_current_user), db: S
         ]
 
     elif rol == "TUTOR":
-        asigs = db.query(AsignacionTutor).filter(
-            AsignacionTutor.tutor_id == current_user.id,
-            AsignacionTutor.estado == 'ACTIVO'
-        ).all()
-        insc_ids = [a.inscripcion_id for a in asigs]
+        insc_ids = [i.id for i in inscripciones_del_tutor(db, current_user.id).all()]
 
         inscripciones_tutor = db.query(Inscripcion).filter(Inscripcion.id.in_(insc_ids)).all()
         stats.total_postulantes = len(insc_ids)

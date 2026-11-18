@@ -5,9 +5,10 @@ from sqlalchemy import or_
 from app.core.database import get_db
 from app.core.security import get_current_user, require_roles, verify_applicant_access
 from app.models.entities import (
-    Inscripcion, Usuario, Programa, Convocatoria, AsignacionTutor, 
+    Inscripcion, Usuario, Programa, Convocatoria, 
     CoordinadorPrograma, AsignacionCurso, ActividadCurso, EntregaEvidencia
 )
+from app.services.tutoria import subconsulta_inscripciones_tutor, nombres_tutores
 from app.schemas.pydantic_models import ApplicantListItem
 from app.services.progress_service import calcular_avance
 
@@ -29,10 +30,7 @@ def list_applicants(
     if current_user.rol.codigo == "POSTULANTE":
         query = query.filter(Inscripcion.postulante_id == current_user.id)
     elif current_user.rol.codigo == "TUTOR":
-        query = query.join(AsignacionTutor, AsignacionTutor.inscripcion_id == Inscripcion.id).filter(
-            AsignacionTutor.tutor_id == current_user.id,
-            AsignacionTutor.estado == 'ACTIVO'
-        )
+        query = query.filter(Inscripcion.id.in_(subconsulta_inscripciones_tutor(db, current_user.id)))
     elif current_user.rol.codigo == "COORDINADOR":
         query = query.join(
             CoordinadorPrograma, CoordinadorPrograma.programa_id == Convocatoria.programa_id
@@ -63,11 +61,7 @@ def list_applicants(
         conv = insc.convocatoria
         prog = conv.programa
 
-        tutor_asig = db.query(AsignacionTutor).filter(
-            AsignacionTutor.inscripcion_id == insc.id,
-            AsignacionTutor.estado == 'ACTIVO'
-        ).first()
-        tutor_nombre = tutor_asig.tutor.nombre_completo if tutor_asig else None
+        tutor_nombre = nombres_tutores(db, insc)
 
         # Avance sumando todos los cursos asignados
         pct_avance = calcular_avance(db, insc)["porcentaje"]
@@ -86,7 +80,6 @@ def list_applicants(
             motivo_riesgo=insc.motivo_riesgo,
             fecha_inscripcion=insc.fecha_inscripcion,
             tutor_nombre=tutor_nombre,
-            tutor_id=tutor_asig.tutor_id if tutor_asig else None,
             programa_id=prog.id,
             porcentaje_avance=pct_avance,
             requiere_adaptaciones=bool(insc.requiere_adaptaciones),

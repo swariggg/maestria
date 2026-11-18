@@ -12,8 +12,9 @@ from sqlalchemy.orm import Session
 from app.models.entities import (
     Inscripcion, Usuario, Programa, Convocatoria, CursoPreparatorio,
     ActividadCurso, AsignacionCurso, EntregaEvidencia, EvaluacionEvidencia,
-    SeguimientoPostulante, AsignacionTutor
+    SeguimientoPostulante
 )
+from app.services.tutoria import nombres_tutores
 from app.services.progress_service import calcular_avance, asignaciones_del_postulante
 
 def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.BytesIO:
@@ -84,11 +85,7 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#EAAA00'), spaceAfter=15))
 
     # Datos del Postulante y Programa
-    tutor_asig = db.query(AsignacionTutor).filter(
-        AsignacionTutor.inscripcion_id == inscripcion.id,
-        AsignacionTutor.estado == 'ACTIVO'
-    ).first()
-    tutor_nombre = tutor_asig.tutor.nombre_completo if tutor_asig else "No asignado"
+    tutor_nombre = nombres_tutores(db, inscripcion, "No asignado")
     avance = calcular_avance(db, inscripcion)
 
     info_data = [
@@ -255,10 +252,6 @@ def filas_matriz(db: Session, inscripciones) -> list:
     for insc in inscripciones:
         post = insc.postulante
         conv = insc.convocatoria
-        tutor_asig = db.query(AsignacionTutor).filter(
-            AsignacionTutor.inscripcion_id == insc.id,
-            AsignacionTutor.estado == 'ACTIVO'
-        ).first()
         avance = calcular_avance(db, insc)
         filas.append([
             post.nombre_completo,
@@ -269,7 +262,7 @@ def filas_matriz(db: Session, inscripciones) -> list:
             f"{avance['porcentaje']}%",
             avance["actividades_pendientes"],
             dias_pendientes(insc),
-            tutor_asig.tutor.nombre_completo if tutor_asig else "Sin Tutor",
+            nombres_tutores(db, insc, "Sin tutor"),
             db.query(SeguimientoPostulante).filter(SeguimientoPostulante.inscripcion_id == insc.id).count(),
             insc.estado_proceso,
             insc.nivel_riesgo,
