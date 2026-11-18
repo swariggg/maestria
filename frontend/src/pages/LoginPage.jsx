@@ -26,16 +26,45 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
   };
 
   return (
-    <div className="auth-screen">
-      <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '36px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <img src="/uide-logo.svg" alt="UIDE - Universidad Internacional del Ecuador" style={{ height: '64px', marginBottom: '18px' }} />
-          <h1>APP - Maestría</h1>
-          <p style={{ color: 'var(--text-sec)', marginTop: '4px' }}>
-            Universidad Internacional del Ecuador (UIDE)
+    <div className="login-screen">
+      <div className="login-shell">
+        <section className="login-intro">
+          <img src="/uide-logo.svg" alt="UIDE - Universidad Internacional del Ecuador" className="login-logo" />
+
+          <div className="login-stats" data-reveal>
+            <div className="stat-pill dark">
+              <strong>APP</strong>
+              <small>Maestría<br />UIDE</small>
+            </div>
+            <div className="stat-pill">
+              <strong>4</strong>
+              <small>Roles en<br />un solo lugar</small>
+            </div>
+          </div>
+
+          <h1 className="login-headline">
+            Reinventemos
+            <span className="lh-inline">
+              el futuro <span className="lh-badge">Posgrado UIDE</span>
+            </span>
+            de tu carrera
+          </h1>
+          <p className="login-lead">
+            Gestión académica de los cursos preparatorios: inscripción, actividades, evidencias,
+            seguimiento y certificados, con avisos dentro de la app.
           </p>
-          <small style={{ color: 'var(--text-sec)' }}>Gestión Académica de Cursos Preparatorios</small>
-        </div>
+
+          <div className="login-chips">
+            <span className="chip-soft">Inscripción</span>
+            <span className="chip-soft">Cursos preparatorios</span>
+            <span className="chip-soft">Evidencias</span>
+            <span className="chip-soft">Certificados</span>
+          </div>
+        </section>
+
+        <section className="login-form-card">
+          <h2>Iniciar sesión</h2>
+          <small style={{ display: 'block', marginBottom: '20px' }}>Gestión Académica de Cursos Preparatorios</small>
 
         {error && (
           <div style={{
@@ -105,6 +134,16 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
             Crear cuenta
           </button>
         </p>
+        </section>
+
+        <aside className="login-media" aria-hidden="true">
+          <img src="/campus-uide.jpg" alt="" />
+          <div className="login-media-glass">
+            <span className="lmg-big">Campus<br />Quito</span>
+            <span className="lmg-sep" />
+            <span className="lmg-small">Universidad<br />Internacional<br />del Ecuador</span>
+          </div>
+        </aside>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -34,8 +34,30 @@ export default function Sidebar({ user, activeTab, setActiveTab }) {
 
   const visibleItems = navItems.filter(item => item.roles.includes(role));
 
+  // Píldora que se desliza hasta la opción activa
+  const navRef = useRef(null);
+  const [pill, setPill] = useState(null);
+  useLayoutEffect(() => {
+    const medir = () => {
+      const activo = navRef.current?.querySelector('.nav-link.active');
+      if (!activo) return setPill(null);
+      setPill({ x: activo.offsetLeft, y: activo.offsetTop, w: activo.offsetWidth, h: activo.offsetHeight });
+    };
+    medir();
+    document.fonts?.ready.then(medir);
+    window.addEventListener('resize', medir);
+    return () => window.removeEventListener('resize', medir);
+  }, [activeTab, role]);
+
   return (
-    <nav className="topnav" aria-label="Navegación principal">
+    <nav className="topnav" aria-label="Navegación principal" ref={navRef}>
+      {pill && (
+        <span
+          className="nav-pill"
+          aria-hidden="true"
+          style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }}
+        />
+      )}
       {visibleItems.map((item) => {
         const Icon = item.icon;
         const isActive = activeTab === item.id;

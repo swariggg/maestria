@@ -17,12 +17,16 @@ import EnrollmentPage from './pages/EnrollmentPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import CertificatesPage from './pages/CertificatesPage';
 import { api } from './services/api';
+import useScrollReveal from './components/visual/useScrollReveal';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
+
+  // Animación de entrada de tarjetas al cambiar de sección o al bajar
+  useScrollReveal('.page-body', [activeTab, user?.id, loading]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -67,17 +71,11 @@ export default function App() {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--bg-main)'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <h2 style={{ color: 'var(--text-main)' }}>Cargando Sistema APP - Maestría...</h2>
-          <small style={{ color: 'var(--text-sec)' }}>Universidad Internacional del Ecuador</small>
-        </div>
+      <div className="splash">
+        <img src="/uide-isotipo.svg" alt="" className="splash-mark" />
+        <h2>APP - Maestría</h2>
+        <small>Universidad Internacional del Ecuador</small>
+        <span className="splash-bar" aria-hidden="true" />
       </div>
     );
   }
@@ -124,7 +122,7 @@ export default function App() {
         <Header user={user} onLogout={handleLogout} onNavigate={setActiveTab} />
         <Sidebar user={user} activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
-      <main className="page-body">
+      <main className="page-body page-enter" key={activeTab}>
         {activeTab === 'dashboard' && <DashboardPage user={user} onNavigate={setActiveTab} />}
         {activeTab === 'enrollment' && <EnrollmentPage />}
         {activeTab === 'applicants' && <ApplicantsPage user={user} />}

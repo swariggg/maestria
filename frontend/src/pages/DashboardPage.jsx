@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import Badge from '../components/Badge';
+import WelcomeHero from '../components/visual/WelcomeHero';
 
 export default function DashboardPage({ user, onNavigate }) {
   const [stats, setStats] = useState(null);
@@ -62,25 +63,24 @@ export default function DashboardPage({ user, onNavigate }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1>Panel de Control Académico</h1>
-          <p style={{ color: 'var(--text-sec)' }}>
-            Bienvenido, {user?.nombre_completo}. Resumen del estado actual del proceso preparatorio.
-          </p>
-        </div>
-
+      <WelcomeHero user={user}>
+        {role === 'POSTULANTE' && (
+          <button onClick={() => onNavigate?.('courses')} className="btn btn-primary">
+            <BookOpen size={16} />
+            <span>Ir a mis cursos</span>
+          </button>
+        )}
         {['ADMIN', 'COORDINADOR'].includes(role) && (
           <button
             onClick={handleEvaluateRisks}
-            className="btn btn-secondary"
+            className="btn btn-primary"
             disabled={evaluating}
           >
             <RefreshCw size={16} className={evaluating ? 'spin' : ''} />
             <span>{evaluating ? 'Evaluando...' : 'Recalcular Riesgos Ahora'}</span>
           </button>
         )}
-      </div>
+      </WelcomeHero>
 
       {evalMessage && (
         <div style={{
@@ -97,7 +97,7 @@ export default function DashboardPage({ user, onNavigate }) {
       )}
 
       {/* KPI Cards Grid */}
-      <div className="grid-cols-4" style={{ marginBottom: '28px' }}>
+      <div className="grid-cols-4 kpi-grid" style={{ marginBottom: '28px' }}>
         <div className="card card-hero">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -168,7 +168,7 @@ export default function DashboardPage({ user, onNavigate }) {
       </div>
 
       {role !== 'POSTULANTE' && (
-        <div className="grid-cols-4" style={{ marginBottom: '28px' }}>
+        <div className="grid-cols-4 kpi-grid" style={{ marginBottom: '28px' }}>
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>

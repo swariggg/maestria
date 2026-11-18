@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Plus, Layers, GraduationCap, CalendarDays, Pencil, ArrowRight, Trash2, FileText, ListChecks, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 import Badge from '../components/Badge';
+import CourseBanner from '../components/visual/CourseBanner';
+import CourseTile from '../components/visual/CourseTile';
 import Modal from '../components/Modal';
 import RequirementsManager from '../components/RequirementsManager';
 import { RubricEditor, MaterialsPanel } from '../components/CourseExtras';
@@ -472,8 +474,16 @@ export default function CoursesPage({ user }) {
   const cursoEditable = (canManage && CONV_PERMITE_CURSOS.includes(convDeCurso(selectedCourse)?.estado)) || esTutorDelCurso;
   const totalCurso = parseFloat(selectedCourse?.ponderacion_total || 100);
 
+  const irAlCurso = (crs) => {
+    handleSelectCourse(crs);
+    requestAnimationFrame(() => document.querySelector('.course-banner')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+
   return (
     <div>
+      {/* Al entrar a un curso: franja con su nombre bajo la navegación (postulante y tutor) */}
+      {!canManage && selectedCourse && <CourseBanner curso={selectedCourse} convocatoria={convDeCurso(selectedCourse)} />}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1>Programas de Maestría y Cursos Preparatorios</h1>
@@ -642,37 +652,27 @@ export default function CoursesPage({ user }) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
-        {/* Lista de Programas y Cursos */}
-        <div className="card" style={{ padding: '20px' }}>
+      <div className="courses-stack">
+        {/* Cursos como tarjetas con figuras de fondo */}
+        <section>
           <h3 style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Layers size={18} color="var(--color-navy)" />
-            <span>Cursos Activos</span>
+            <span>{canManage ? 'Cursos Activos' : 'Mis cursos'}</span>
           </h3>
 
           {loading ? (
             <p>Cargando cursos...</p>
           ) : courses.length === 0 ? (
-            <small>{canManage ? 'Aún no hay cursos. Use "Nuevo curso" en una convocatoria.' : 'No tiene cursos asignados.'}</small>
+            <div className="card"><small>{canManage ? 'Aún no hay cursos. Use "Nuevo curso" en una convocatoria.' : 'No tiene cursos asignados.'}</small></div>
           ) : (
-            courses.map((crs) => {
-              const isSelected = selectedCourse?.id === crs.id;
-              return (
-                <div
+            <div className="course-tiles">
+              {courses.map((crs) => (
+                <CourseTile
                   key={crs.id}
-                  onClick={() => handleSelectCourse(crs)}
-                  style={{
-                    padding: '14px',
-                    borderRadius: '12px',
-                    backgroundColor: isSelected ? 'var(--color-sec)' : 'var(--surface-muted)',
-                    marginBottom: '10px',
-                    cursor: 'pointer',
-                    border: isSelected ? '1px solid var(--color-sec-text)' : '1px solid var(--border-light)',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                    <strong>{crs.codigo}</strong>
+                  curso={crs}
+                  selected={selectedCourse?.id === crs.id}
+                  onClick={() => irAlCurso(crs)}
+                  extra={
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {convDeCurso(crs) && <small style={{ color: 'var(--text-sec)' }}>{convDeCurso(crs).codigo}</small>}
                       <Badge type={crs.estado} />
@@ -687,19 +687,19 @@ export default function CoursesPage({ user }) {
                         </button>
                       )}
                     </div>
-                  </div>
-                  <div style={{ fontSize: '0.9rem', marginTop: '4px', color: 'var(--text-main)', fontWeight: 500 }}>
-                    {crs.nombre}
-                  </div>
+                  }
+                >
                   <small style={{ display: 'block', color: crs.tutor_nombre ? 'var(--text-sec)' : 'var(--status-warning-text)' }}>
                     Tutor: {crs.tutor_nombre || 'sin asignar'}
                   </small>
                   <small style={{ color: 'var(--text-sec)' }}>Vale {crs.ponderacion_total} puntos · aprueba con {crs.nota_minima}/100</small>
-                </div>
-              );
-            })
+                </CourseTile>
+              ))}
+            </div>
           )}
-        </div>
+        </section>
+
+        {canManage && selectedCourse && <CourseBanner curso={selectedCourse} convocatoria={convDeCurso(selectedCourse)} />}
 
         {/* Detalle de Actividades y Ponderación */}
         <div className="card" style={{ padding: '24px' }}>

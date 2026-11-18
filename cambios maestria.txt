@@ -1,0 +1,3 @@
+cambios maestria
+-Poner selección para ciudad: ciudades de ecuador + otros (se escribe);carreras principales + otro; universidades ecuador + otro
+-cambiar pdf de reporte
