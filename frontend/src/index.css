@@ -55,8 +55,6 @@
   --radius-field: 16px;
   --shadow-soft: 0 8px 24px rgba(0, 45, 114, 0.06);
   --shadow-hover: 0 12px 32px rgba(0, 45, 114, 0.10);
-  --gradient-hero: linear-gradient(135deg, #002D72 0%, #0B3A86 60%, #1A4488 100%);
-  --gradient-wine: linear-gradient(135deg, #6E0037 0%, #910048 100%);
 
   /* Tipografía del manual: Source Sans */
   --font-family: 'Source Sans 3', 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -162,7 +160,7 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
 
 /* Tarjeta destacada oscura (estilo "próxima cita") */
 .card-hero {
-  background: var(--gradient-hero);
+  background: var(--color-navy);
   color: #FFFFFF;
 }
 .card-hero h2, .card-hero h3, .card-hero p { color: #FFFFFF !important; }
@@ -170,13 +168,13 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
 
 /* Tarjeta con tinte suave (estilo "resumen de salud") */
 .card-tint {
-  background: linear-gradient(180deg, var(--tint-blue) 0%, #F5F7FB 100%);
+  background: var(--tint-blue);
   box-shadow: none;
 }
 
 /* Tarjeta de alerta en tonos rojos */
 .card-alert {
-  background: linear-gradient(180deg, var(--tint-red) 0%, #FFFFFF 100%);
+  background: var(--tint-red);
 }
 
 /* Aviso en línea: estado de la convocatoria, documentación pendiente */
@@ -276,11 +274,12 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
 }
 
 .btn-primary {
-  background: var(--gradient-wine);
+  background: var(--color-uide);
   color: #FFFFFF;
   box-shadow: 0 6px 16px rgba(110, 0, 55, 0.22);
 }
 .btn-primary:hover:not(:disabled) {
+  background: var(--color-burgundy);
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(110, 0, 55, 0.32);
 }
@@ -427,7 +426,7 @@ code { font-size: 0.85em; background: var(--tint-cream); padding: 1px 6px; borde
 .nav-link.active,
 .nav-link.active:hover {
   color: #FFFFFF;
-  background: var(--gradient-wine);
+  background: var(--color-uide);
   font-weight: 700;
   box-shadow: 0 6px 16px rgba(110, 0, 55, 0.22);
 }

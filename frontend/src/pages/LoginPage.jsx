@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Mail, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react';
+import { Lock, Mail, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
 
 export default function LoginPage({ onLoginSuccess, onShowRegister }) {
@@ -23,11 +23,6 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickLogin = (demoEmail) => {
-    setEmail(demoEmail);
-    setPassword('Demo2026!');
   };
 
   return (
@@ -110,58 +105,6 @@ export default function LoginPage({ onLoginSuccess, onShowRegister }) {
             Crear cuenta
           </button>
         </p>
-
-        {/* Usuarios de prueba */}
-        <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border-light)' }}>
-          <small style={{ display: 'block', fontWeight: 600, color: 'var(--text-sec)', marginBottom: '10px' }}>
-            USUARIOS DE PRUEBA
-          </small>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin@uide.edu.ec')}
-              className="btn btn-outline"
-              style={{ padding: '6px 10px', fontSize: '0.775rem' }}
-            >
-              Administrador
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('coordinador.ia@uide.edu.ec')}
-              className="btn btn-outline"
-              style={{ padding: '6px 10px', fontSize: '0.775rem' }}
-            >
-              Coordinador IA
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('tutor.ia@uide.edu.ec')}
-              className="btn btn-outline"
-              style={{ padding: '6px 10px', fontSize: '0.775rem' }}
-            >
-              Tutor IA
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('postulante.perez@uide.edu.ec')}
-              className="btn btn-outline"
-              style={{ padding: '6px 10px', fontSize: '0.775rem' }}
-            >
-              Postulante Pérez (riesgo bajo)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('postulante.zambrano@uide.edu.ec')}
-              className="btn btn-outline"
-              style={{ padding: '6px 10px', fontSize: '0.775rem' }}
-            >
-              Postulante Zambrano (riesgo alto)
-            </button>
-          </div>
-          <small style={{ display: 'block', color: 'var(--text-sec)', marginTop: '8px', fontSize: '0.75rem' }}>
-            Contraseña de los usuarios de prueba: <code>Demo2026!</code>
-          </small>
-        </div>
       </div>
     </div>
   );

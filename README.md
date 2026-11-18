@@ -54,8 +54,6 @@ Todas las cuentas de prueba están preconfiguradas con la contraseña: **`Demo20
 | **Postulante (Riesgo Medio)**| `postulante.morales@uide.edu.ec`| Ana Morales: Taller 1 vencido sin entrega y avance rezagado. |
 | **Postulante (Riesgo Alto)** | `postulante.zambrano@uide.edu.ec`| David Zambrano: Inactivo más de 14 días y 2 contactos sin respuesta. |
 
-*(La pantalla de inicio de sesión incluye botones de acceso rápido con 1 solo clic para alternar entre roles).*
-
 Un postulante nuevo puede crear su cuenta desde **"Crear cuenta"** en la pantalla de inicio de sesión y luego inscribirse en una convocatoria abierta desde la sección **Inscripción**. Al inscribirse se le asignan automáticamente todos los cursos preparatorios activos de esa convocatoria.
 
 ---
