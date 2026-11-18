@@ -13,13 +13,16 @@ import {
   History,
   Paperclip,
   CheckSquare,
-  ClipboardCheck
+  ClipboardCheck,
+  AlertTriangle,
+  UserSearch
 } from 'lucide-react';
 import { api } from '../services/api';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import DocumentsPanel from '../components/DocumentsPanel';
 import HistoryTimeline from '../components/HistoryTimeline';
+import ApplicantSheet from '../components/ApplicantSheet';
 import { saveBlob } from '../utils/download';
 
 export default function ApplicantsPage({ user }) {
@@ -63,6 +66,7 @@ export default function ApplicantsPage({ user }) {
 
   // Historial cronológico
   const [historyApplicant, setHistoryApplicant] = useState(null);
+  const [sheetApplicant, setSheetApplicant] = useState(null);
   const [history, setHistory] = useState(null);
 
   const loadApplicants = async () => {
@@ -344,8 +348,26 @@ export default function ApplicantsPage({ user }) {
                 {applicants.map((app) => (
                   <tr key={app.id}>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{app.nombre_completo}</div>
+                      <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {app.nombre_completo}
+                        {/* Varias actividades sin entregar que vencen pronto: el tutor lo ve junto al nombre */}
+                        {app.actividades_por_vencer >= 2 && (
+                          <span
+                            title={`${app.actividades_por_vencer} actividades sin entregar vencen pronto`}
+                            aria-label={`${app.actividades_por_vencer} actividades por vencer`}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: 'var(--status-danger-text)', fontSize: '0.75rem', fontWeight: 700 }}
+                          >
+                            <AlertTriangle size={16} /> {app.actividades_por_vencer}
+                          </span>
+                        )}
+                      </div>
                       <small style={{ color: 'var(--text-sec)' }}>CI: {app.cedula} • {app.email}</small>
+                      {app.actividades_por_vencer === 1 && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--status-warning-text)', marginTop: '2px' }}>1 actividad por vencer</div>
+                      )}
+                      {app.actividades_vencidas > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--status-danger-text)', marginTop: '2px' }}>{app.actividades_vencidas} vencida(s) sin entregar</div>
+                      )}
                       {app.requiere_adaptaciones && (
                         <div style={{ fontSize: '0.75rem', color: 'var(--color-navy)', marginTop: '2px' }}>
                           Adaptaciones: {app.nota_adaptaciones || 'sí'}
@@ -408,6 +430,15 @@ export default function ApplicantsPage({ user }) {
                             <FileCheck size={15} />
                           </button>
                         )}
+
+                        <button
+                          className={app.actividades_por_vencer > 0 ? 'btn btn-secondary' : 'btn btn-outline'}
+                          style={{ padding: '6px 8px', fontSize: '0.8rem' }}
+                          title="Ficha: datos y actividades hechas y por hacer"
+                          onClick={() => setSheetApplicant(app)}
+                        >
+                          <UserSearch size={15} />
+                        </button>
 
                         <button
                           className="btn btn-outline"
@@ -518,6 +549,16 @@ export default function ApplicantsPage({ user }) {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Modal: Ficha del postulante (seguimiento individual) */}
+      <Modal
+        isOpen={!!sheetApplicant}
+        onClose={() => setSheetApplicant(null)}
+        title={`Ficha - ${sheetApplicant?.nombre_completo || ''}`}
+        wide
+      >
+        {sheetApplicant && <ApplicantSheet inscripcionId={sheetApplicant.id} />}
       </Modal>
 
       {/* Modal: Historial cronológico */}

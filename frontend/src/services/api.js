@@ -116,6 +116,7 @@ export const api = {
   downloadDocument: (id) => apiRequest(`/documentos/${id}/download`),
 
   // Postulantes
+  getApplicantSheet: (inscripcionId) => apiRequest(`/postulantes/${inscripcionId}/ficha`),
   getApplicants: (filters = {}) => {
     const params = new URLSearchParams();
     if (filters.search) params.append('search', filters.search);

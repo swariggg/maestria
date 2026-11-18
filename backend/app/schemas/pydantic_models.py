@@ -217,6 +217,10 @@ class ApplicantListItem(BaseModel):
     nota_adaptaciones: Optional[str] = None
     retiro_solicitado: bool = False
     motivo_retiro: Optional[str] = None
+    # Para los íconos de peligro: actividades por entregar que vencen pronto y las ya vencidas
+    actividades_por_vencer: int = 0
+    actividades_vencidas: int = 0
+    proxima_entrega: Optional[datetime] = None
 
 class EnrollmentCreate(BaseModel):
     convocatoria_id: int
