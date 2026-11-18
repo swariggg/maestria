@@ -99,7 +99,7 @@ def _lista(titulo: str, items: list) -> str:
 
 
 def enviar_resumenes_diarios(db: Session, ahora: datetime = None) -> dict:
-    """Un correo por persona y por día, solo si tiene algo pendiente."""
+    """Un aviso por persona y por día, solo si tiene algo pendiente."""
     ahora = ahora or datetime.now()
     clave = f"RESUMEN_DIARIO_{ahora.strftime('%Y%m%d')}"
     enviados = 0

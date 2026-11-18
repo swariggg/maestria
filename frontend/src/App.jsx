@@ -121,7 +121,7 @@ export default function App() {
   return (
     <div className="app-container">
       <div className="topbar">
-        <Header user={user} onLogout={handleLogout} />
+        <Header user={user} onLogout={handleLogout} onNavigate={setActiveTab} />
         <Sidebar user={user} activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
       <main className="page-body">

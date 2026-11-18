@@ -18,6 +18,7 @@ from app.api.v1.risks import router as risks_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.audit import router as audit_router
+from app.api.v1.notifications import router as notifications_router
 from app.api.v1.profile import router as profile_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.configuration import router as configuration_router
@@ -74,6 +75,7 @@ app.include_router(configuration_router, prefix=api_v1_prefix)
 app.include_router(users_router, prefix=api_v1_prefix)
 app.include_router(materials_router, prefix=api_v1_prefix)
 app.include_router(certificates_router, prefix=api_v1_prefix)
+app.include_router(notifications_router, prefix=api_v1_prefix)
 
 @app.get("/")
 def root():

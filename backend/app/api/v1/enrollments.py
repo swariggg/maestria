@@ -221,7 +221,7 @@ def request_withdrawal(
     ))
     db.commit()
     correo_retiro_solicitado(db, insc)
-    return {"mensaje": "Solicitud enviada. Coordinación le responderá por correo."}
+    return {"mensaje": "Solicitud enviada. Coordinación le responderá por un aviso en la app."}
 
 
 @router.patch("/{inscripcion_id}/retiro")

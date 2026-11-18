@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = 50
 
     # SMTP Notifications
+    # Mientras no haya conexión con Outlook, los avisos solo se ven dentro de la app (campana)
+    ENVIAR_CORREOS: bool = False
     SMTP_TEST_MODE: bool = True
     SMTP_SERVER: str = "smtp.uide.edu.ec"
     SMTP_PORT: int = 587

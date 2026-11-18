@@ -50,10 +50,18 @@ def correo_evidencia_cargada(db: Session, inscripcion: Inscripcion, version: Ver
         f"<ul><li>Archivo: {escape(version.nombre_archivo_original)}</li>"
         f"<li>Versión: {version.numero_version}</li>"
         f"<li>Fecha: {version.fecha_entrega.strftime('%Y-%m-%d %H:%M')}</li></ul>"
-        f"{tardia}<p>Su tutor la revisará y recibirá otro correo con el resultado.</p>"
+        f"{tardia}<p>Su tutor la revisará y recibirá otro aviso con el resultado.</p>"
     )
-    return _enviar(db, inscripcion.postulante, "EVIDENCIA_CARGADA",
-                   f"UIDE: Evidencia recibida - {act.titulo}", "Evidencia recibida", cuerpo)
+    _enviar(db, inscripcion.postulante, "EVIDENCIA_CARGADA",
+            f"Evidencia recibida: {act.titulo}", "Evidencia recibida", cuerpo)
+    # El tutor del curso (o coordinación si el curso no tiene tutor) se entera de la entrega
+    tutor = act.curso.tutor
+    if tutor:
+        _enviar(db, tutor, "ENTREGA_POR_REVISAR",
+                f"Nueva entrega por revisar: {act.titulo}", "Nueva entrega",
+                f"<p><strong>{escape(inscripcion.postulante.nombre_completo)}</strong> subió la versión "
+                f"{version.numero_version} de <strong>{escape(act.titulo)}</strong> ({escape(act.curso.codigo)})"
+                + (" fuera de plazo" if version.es_tardia else "") + ". Revísela en Evidencias.</p>")
 
 
 def correo_evidencia_evaluada(db: Session, inscripcion: Inscripcion, evaluacion: EvaluacionEvidencia):
@@ -194,6 +202,12 @@ def correo_tutor_curso(db: Session, curso):
 
 
 def correo_certificado_emitido(db: Session, asig):
+    if asig.curso.tutor:
+        _enviar(db, asig.curso.tutor, "CERTIFICADO_POR_VERIFICAR",
+                f"Certificado por verificar: {asig.inscripcion.postulante.nombre_completo}", "Certificado por verificar",
+                f"<p><strong>{escape(asig.inscripcion.postulante.nombre_completo)}</strong> aprobó "
+                f"<strong>{escape(asig.curso.nombre)}</strong> con {float(asig.nota_final or 0):g}/100. "
+                "Verifique su certificado en la sección Certificados para que cuente en el avance de la maestría.</p>")
     return _enviar(db, asig.inscripcion.postulante, "CERTIFICADO_EMITIDO",
                    f"UIDE: Aprobó {asig.curso.nombre}", "Curso aprobado",
                    f"<p>¡Felicitaciones! Aprobó el curso <strong>{escape(asig.curso.nombre)}</strong> con "

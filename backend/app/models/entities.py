@@ -468,6 +468,8 @@ class NotificacionCola(Base):
     intentos = Column(Integer, default=0)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     fecha_ultimo_intento = Column(DateTime, nullable=True)
+    leida = Column(Boolean, default=False)  # notificación dentro de la app
+    fecha_lectura = Column(DateTime, nullable=True)
 
     destinatario = relationship("Usuario", foreign_keys=[destinatario_id])
 

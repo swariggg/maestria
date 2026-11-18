@@ -188,7 +188,7 @@ export default function ProfilePage() {
                   <label className="form-label">¿Por qué desea retirarse? (mínimo 10 caracteres)</label>
                   <textarea className="form-input" rows={3} value={motivoRetiro} onChange={(e) => setMotivoRetiro(e.target.value)} />
                   <small style={{ color: 'var(--text-sec)', display: 'block', margin: '6px 0 10px' }}>
-                    Coordinación revisará su solicitud y le responderá por correo. Hasta entonces su inscripción sigue vigente.
+                    Coordinación revisará su solicitud y le responderá con un aviso en la app. Hasta entonces su inscripción sigue vigente.
                   </small>
                   <button type="button" className="btn btn-primary" disabled={motivoRetiro.trim().length < 10} onClick={handleRetiro}>
                     Enviar solicitud

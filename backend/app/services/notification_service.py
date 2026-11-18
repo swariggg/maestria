@@ -37,6 +37,12 @@ def send_or_queue_notification(
     return notif
 
 def process_single_notification(db: Session, notif: NotificacionCola) -> bool:
+    # Sin conexión con el correo institucional: el aviso queda solo en la campana de la app
+    if not settings.ENVIAR_CORREOS:
+        notif.estado = "EN_APP"
+        db.commit()
+        return True
+
     notif.intentos += 1
     notif.fecha_ultimo_intento = datetime.now()
 

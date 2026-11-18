@@ -83,7 +83,7 @@ export default function AlertsPage({ user }) {
     e.preventDefault();
     try {
       await api.deriveAlert(derivar.alerta.id, Number(derivar.destinatario_id), derivar.nota);
-      setMessage({ type: 'success', text: 'Alerta derivada. Se avisó por correo al coordinador.' });
+      setMessage({ type: 'success', text: 'Alerta derivada. El coordinador recibió un aviso en la app.' });
       setDerivar(null);
       loadAlerts();
     } catch (err) {

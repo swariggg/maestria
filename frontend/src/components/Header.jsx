@@ -1,6 +1,7 @@
 import React from 'react';
 import { LogOut } from 'lucide-react';
 import Badge from './Badge';
+import NotificationBell from './NotificationBell';
 
 function getInitials(name = '') {
   return name
@@ -12,7 +13,7 @@ function getInitials(name = '') {
     .join('');
 }
 
-export default function Header({ user, onLogout }) {
+export default function Header({ user, onLogout, onNavigate }) {
   return (
     <header className="header">
       <div className="brand">
@@ -25,6 +26,7 @@ export default function Header({ user, onLogout }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <NotificationBell onNavigate={onNavigate} />
         <div className="icon-circle" style={{ background: 'var(--color-cream)', color: 'var(--color-burgundy)', fontWeight: 700, fontSize: '0.9rem' }}>
           {getInitials(user?.nombre_completo)}
         </div>

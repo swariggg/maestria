@@ -93,6 +93,9 @@ export const api = {
   downloadMaterial: (id) => apiRequest(`/materiales/${id}/download`),
 
   // Perfil y documentos del postulante
+  getNotifications: () => apiRequest('/notificaciones'),
+  markNotificationRead: (id) => apiRequest(`/notificaciones/${id}/leida`, { method: 'PATCH' }),
+  markAllNotificationsRead: () => apiRequest('/notificaciones/leer-todas', { method: 'POST' }),
   getMyProfile: () => apiRequest('/perfil'),
   updateMyProfile: (data) => apiRequest('/perfil', { method: 'PUT', body: JSON.stringify(data) }),
   getRequirements: (convId) => apiRequest(`/documentos/requisitos?convocatoria_id=${convId}`),

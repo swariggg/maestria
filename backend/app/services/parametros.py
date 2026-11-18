@@ -24,7 +24,7 @@ PARAMETROS = {
     "PUNTOS_PRUEBA": ("int", lambda: 6,
                       "Puntos estándar de una prueba o evaluación", "CALIFICACION", 1, 100),
     "DIAS_RECORDATORIO": ("lista", lambda: "15,10,5,3,1",
-                          "Días antes del vencimiento en que se envía un recordatorio por correo", "NOTIFICACIONES", 1, 60),
+                          "Días antes del vencimiento en que se envía un recordatorio (aviso en la app)", "NOTIFICACIONES", 1, 60),
 }
 
 

@@ -999,7 +999,7 @@ export default function CoursesPage({ user }) {
             )}
             {estadoDestino === 'FINALIZADA' && (
               <small style={{ display: 'block' }}>
-                Al finalizar, quien no aprobó queda como no aprobado y se le avisa por correo. Si hace falta, se puede reabrir con motivo.
+                Al finalizar, quien no aprobó queda como no aprobado y recibe un aviso en la app. Si hace falta, se puede reabrir con motivo.
               </small>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>

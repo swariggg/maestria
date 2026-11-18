@@ -96,12 +96,13 @@ def historial_inscripcion(db: Session, inscripcion: Inscripcion) -> list:
             eventos.append(_evento(al.fecha_resolucion, "ALERTA", f"Alerta cerrada: {al.tipo_alerta}", al.accion_tomada,
                                    al.usuario_resolutor.nombre_completo if al.usuario_resolutor else "Sistema"))
 
-    # Correos enviados al postulante desde su inscripción
+    # Avisos enviados al postulante desde su inscripción
     for n in db.query(NotificacionCola).filter(
         NotificacionCola.destinatario_id == postulante.id,
         NotificacionCola.fecha_creacion >= inscripcion.fecha_inscripcion
     ).all():
-        eventos.append(_evento(n.fecha_creacion, "CORREO", n.asunto, f"Estado del envío: {n.estado}", "Sistema"))
+        detalle = "Aviso en la app (" + ("leído" if n.leida else "sin leer") + ")" if n.estado == "EN_APP" else f"Correo: {n.estado}"
+        eventos.append(_evento(n.fecha_creacion, "CORREO", n.asunto, detalle, "Sistema"))
 
     eventos = [e for e in eventos if e["fecha"]]
     eventos.sort(key=lambda e: e["fecha"], reverse=True)

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  ClipboardList, RefreshCw, UserPlus, PhoneCall, Upload, CheckCircle, FileText, AlertTriangle, Mail
+  ClipboardList, RefreshCw, UserPlus, PhoneCall, Upload, CheckCircle, FileText, AlertTriangle, Bell
 } from 'lucide-react';
 
 const TIPOS = {
@@ -12,7 +12,7 @@ const TIPOS = {
   CALIFICACION: { label: 'Calificaciones', icon: CheckCircle },
   DOCUMENTO: { label: 'Documentos', icon: FileText },
   ALERTA: { label: 'Alertas', icon: AlertTriangle },
-  CORREO: { label: 'Correos', icon: Mail },
+  CORREO: { label: 'Avisos', icon: Bell },
 };
 
 /** Línea de tiempo de una inscripción, con filtro por tipo de evento. */

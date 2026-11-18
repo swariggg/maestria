@@ -742,4 +742,11 @@ FROM asignaciones_curso ac JOIN inscripciones i ON i.id = ac.inscripcion_id
 WHERE ac.estado_aprobacion = 'APROBADO' AND ac.certificado_estado IS NULL;
 GO
 
+-- 36. Avisos dentro de la app (campana): mientras no haya conexión con Outlook no se envían correos
+IF COL_LENGTH('notificaciones_cola', 'leida') IS NULL
+    ALTER TABLE notificaciones_cola ADD leida BIT NOT NULL CONSTRAINT DF_nc_leida DEFAULT 0;
+IF COL_LENGTH('notificaciones_cola', 'fecha_lectura') IS NULL
+    ALTER TABLE notificaciones_cola ADD fecha_lectura DATETIME2 NULL;
+GO
+
 PRINT N'Esquema completo de APP - Maestría creado exitosamente en app_maestria.';

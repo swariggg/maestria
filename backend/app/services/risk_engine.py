@@ -206,7 +206,7 @@ def evaluate_applicant_risk(db: Session, inscripcion_id: int, ahora: datetime = 
     db.commit()
     db.refresh(inscripcion)
 
-    # El tutor recibe un correo por cada alerta nueva
+    # El tutor recibe un aviso por cada alerta nueva
     if nuevas:
         from app.services.process_emails import correo_alerta_nueva
         from app.services.tutoria import tutores_de_inscripcion
