@@ -19,6 +19,10 @@ PARAMETROS = {
                               "Días antes del vencimiento en que una actividad pendiente da riesgo medio", "RIESGO", 1, 30),
     "MARGEN_BAJO_AVANCE": ("int", lambda: settings.MARGEN_BAJO_AVANCE,
                            "Puntos por debajo del avance esperado para marcar riesgo medio", "RIESGO", 5, 100),
+    "PUNTOS_ASIGNACION": ("int", lambda: 4,
+                          "Puntos estándar de una asignación (el tutor puede ajustarlo en cada actividad)", "CALIFICACION", 1, 100),
+    "PUNTOS_PRUEBA": ("int", lambda: 6,
+                      "Puntos estándar de una prueba o evaluación", "CALIFICACION", 1, 100),
     "DIAS_RECORDATORIO": ("lista", lambda: "15,10,5,3,1",
                           "Días antes del vencimiento en que se envía un recordatorio por correo", "NOTIFICACIONES", 1, 60),
 }

@@ -119,7 +119,7 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
     
     act_headers = [
         Paragraph("<b>Actividad / Proyecto</b>", body_style),
-        Paragraph("<b>Ponderación</b>", body_style),
+        Paragraph("<b>Puntos</b>", body_style),
         Paragraph("<b>Estado Entrega</b>", body_style),
         Paragraph("<b>Calificación</b>", body_style),
         Paragraph("<b>Resultado</b>", body_style),
@@ -149,7 +149,7 @@ def generate_individual_pdf_report(db: Session, inscripcion_id: int) -> io.Bytes
 
             act_rows.append([
                 Paragraph(f"{asig_curso.curso.codigo}: {act.titulo}", body_style),
-                Paragraph(f"{act.ponderacion}%", body_style),
+                Paragraph(f"{float(act.ponderacion):g}", body_style),
                 Paragraph(estado_ent, body_style),
                 Paragraph(calif_str, body_style),
                 Paragraph(res_str, body_style),

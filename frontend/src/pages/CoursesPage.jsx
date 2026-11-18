@@ -55,14 +55,20 @@ const ahoraInput = () => {
   return d.toISOString().slice(0, 16);
 };
 
-const CURSO_VACIO = { codigo: '', nombre: '', descripcion: '', nota_minima: 70, tutor_id: '', motivo_tutor: '' };
+const CURSO_VACIO = { codigo: '', nombre: '', descripcion: '', nota_minima: 70, ponderacion_total: 30, tutor_id: '', motivo_tutor: '' };
+const TIPOS_ACTIVIDAD = [
+  { valor: 'ASIGNACION', texto: 'Asignación' },
+  { valor: 'PRUEBA', texto: 'Prueba o evaluación' },
+  { valor: 'PROYECTO', texto: 'Proyecto' },
+];
+const PUNTOS_POR_DEFECTO = { ASIGNACION: 4, PRUEBA: 6 };
 const actividadVacia = () => ({
   titulo: '',
-  tipo: 'INDIVIDUAL',
+  tipo: 'ASIGNACION',
   instrucciones: '',
   fecha_apertura: ahoraInput(),
   fecha_limite: '',
-  ponderacion: 25,
+  ponderacion: 4,
   es_obligatorio: true,
   extensiones_permitidas: 'pdf,zip',
   tamano_max_mb: 25,
@@ -81,6 +87,11 @@ export default function CoursesPage({ user }) {
   const [actModal, setActModal] = useState(null); // { actividad: null (nueva) | objeto }
   const [actForm, setActForm] = useState(actividadVacia());
   const [actError, setActError] = useState(null);
+  const [plantillas, setPlantillas] = useState([]);
+  const [puntosEstandar, setPuntosEstandar] = useState(PUNTOS_POR_DEFECTO);
+  const [tplModal, setTplModal] = useState(false);
+  const [tplForm, setTplForm] = useState({ titulo: '', tipo: 'ASIGNACION', ponderacion: 4, extensiones_permitidas: 'pdf,docx', instrucciones: '' });
+  const [tplError, setTplError] = useState(null);
 
   // Modal Crear / Editar Curso y Requisitos
   const [courseModal, setCourseModal] = useState(null); // { convocatoria, curso: null | objeto }
@@ -169,11 +180,34 @@ export default function CoursesPage({ user }) {
     setActivities(elegido ? await api.getActivities(elegido.id) : []);
   };
 
+  const cargarPlantillas = async (programaId) => {
+    if (!programaId) return;
+    try {
+      const data = await api.getTemplates(programaId);
+      setPlantillas(data.plantillas);
+      setPuntosEstandar({ ...PUNTOS_POR_DEFECTO, ...data.puntos_estandar });
+    } catch (err) {
+      setPlantillas([]);
+    }
+  };
+
+  const usarPlantilla = (id) => {
+    const p = plantillas.find((x) => x.id === parseInt(id));
+    if (!p) return;
+    setActForm((prev) => ({
+      ...prev,
+      titulo: p.titulo, tipo: p.tipo, instrucciones: p.instrucciones || '', ponderacion: p.ponderacion,
+      es_obligatorio: p.es_obligatorio, extensiones_permitidas: p.extensiones_permitidas,
+      tamano_max_mb: p.tamano_max_mb, max_reenvios: p.max_reenvios
+    }));
+  };
+
   const openActivity = (actividad = null) => {
     setActError(null);
+    cargarPlantillas(selectedCourse?.programa_id);
     setActForm(actividad ? {
       titulo: actividad.titulo,
-      tipo: actividad.tipo,
+      tipo: actividad.tipo === 'INDIVIDUAL' ? 'ASIGNACION' : actividad.tipo,
       instrucciones: actividad.instrucciones || '',
       fecha_apertura: aInputFecha(actividad.fecha_apertura),
       fecha_limite: aInputFecha(actividad.fecha_limite),
@@ -188,7 +222,41 @@ export default function CoursesPage({ user }) {
 
   const setActField = (campo) => (e) => {
     const valor = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setActForm((prev) => ({ ...prev, [campo]: valor }));
+    setActForm((prev) => {
+      const nuevo = { ...prev, [campo]: valor };
+      // Al cambiar el tipo, se proponen los puntos estándar (asignación 4, prueba 6)
+      if (campo === 'tipo' && puntosEstandar[valor]) nuevo.ponderacion = puntosEstandar[valor];
+      return nuevo;
+    });
+  };
+
+  const openTemplates = () => {
+    setTplError(null);
+    setTplForm({ titulo: '', tipo: 'ASIGNACION', ponderacion: puntosEstandar.ASIGNACION, extensiones_permitidas: 'pdf,docx', instrucciones: '' });
+    cargarPlantillas(selectedCourse?.programa_id);
+    setTplModal(true);
+  };
+
+  const handleSaveTemplate = async (e) => {
+    e.preventDefault();
+    setTplError(null);
+    try {
+      await api.createTemplate({ ...tplForm, programa_id: selectedCourse.programa_id, ponderacion: parseFloat(tplForm.ponderacion),
+        instrucciones: tplForm.instrucciones || null });
+      setTplForm({ titulo: '', tipo: 'ASIGNACION', ponderacion: puntosEstandar.ASIGNACION, extensiones_permitidas: 'pdf,docx', instrucciones: '' });
+      cargarPlantillas(selectedCourse.programa_id);
+    } catch (err) {
+      setTplError(err.message);
+    }
+  };
+
+  const handleDeleteTemplate = async (id) => {
+    try {
+      await api.deleteTemplate(id);
+      cargarPlantillas(selectedCourse.programa_id);
+    } catch (err) {
+      setTplError(err.message);
+    }
   };
 
   const handleSaveActivity = async (e) => {
@@ -197,8 +265,8 @@ export default function CoursesPage({ user }) {
     const editando = actModal.actividad;
     const otras = activities.filter((a) => a.estado === 'ACTIVO' && a.id !== editando?.id);
     const suma = otras.reduce((acc, a) => acc + parseFloat(a.ponderacion || 0), 0) + parseFloat(actForm.ponderacion);
-    if (suma > 100) {
-      setActError(`La ponderación total quedaría en ${suma}%, y no puede superar el 100%.`);
+    if (suma > totalCurso) {
+      setActError(`Las actividades sumarían ${suma} puntos y el curso vale ${totalCurso}.`);
       return;
     }
     if (actForm.fecha_limite <= actForm.fecha_apertura) {
@@ -248,6 +316,7 @@ export default function CoursesPage({ user }) {
       nombre: curso.nombre,
       descripcion: curso.descripcion || '',
       nota_minima: curso.nota_minima,
+      ponderacion_total: curso.ponderacion_total,
       tutor_id: curso.tutor_id || '',
       motivo_tutor: ''
     } : CURSO_VACIO);
@@ -273,7 +342,8 @@ export default function CoursesPage({ user }) {
       codigo: courseForm.codigo,
       nombre: courseForm.nombre,
       descripcion: courseForm.descripcion || null,
-      nota_minima: parseFloat(courseForm.nota_minima)
+      nota_minima: parseFloat(courseForm.nota_minima),
+      ponderacion_total: parseFloat(courseForm.ponderacion_total)
     };
     try {
       let guardado;
@@ -398,7 +468,9 @@ export default function CoursesPage({ user }) {
     .reduce((acc, a) => acc + parseFloat(a.ponderacion || 0), 0);
   const todasConvocatorias = Object.values(convsByProg).flat();
   const convDeCurso = (curso) => todasConvocatorias.find((c) => c.id === curso?.convocatoria_id);
-  const cursoEditable = canManage && CONV_PERMITE_CURSOS.includes(convDeCurso(selectedCourse)?.estado);
+  const esTutorDelCurso = role === 'TUTOR' && !!selectedCourse && selectedCourse.tutor_id === user?.id;
+  const cursoEditable = (canManage && CONV_PERMITE_CURSOS.includes(convDeCurso(selectedCourse)?.estado)) || esTutorDelCurso;
+  const totalCurso = parseFloat(selectedCourse?.ponderacion_total || 100);
 
   return (
     <div>
@@ -410,12 +482,20 @@ export default function CoursesPage({ user }) {
           </p>
         </div>
 
-        {canManage && (
+        {(canManage || esTutorDelCurso) && (
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button onClick={openAddProgram} className="btn btn-primary">
-              <Plus size={16} />
-              <span>Nuevo Programa</span>
-            </button>
+            {canManage && (
+              <button onClick={openAddProgram} className="btn btn-primary">
+                <Plus size={16} />
+                <span>Nuevo Programa</span>
+              </button>
+            )}
+            {canManage && selectedCourse && (
+              <button onClick={openTemplates} className="btn btn-outline">
+                <ListChecks size={16} />
+                <span>Plantillas del programa</span>
+              </button>
+            )}
             {selectedCourse && cursoEditable && (
               <button
                 onClick={() => openActivity(null)}
@@ -614,7 +694,7 @@ export default function CoursesPage({ user }) {
                   <small style={{ display: 'block', color: crs.tutor_nombre ? 'var(--text-sec)' : 'var(--status-warning-text)' }}>
                     Tutor: {crs.tutor_nombre || 'sin asignar'}
                   </small>
-                  <small style={{ color: 'var(--text-sec)' }}>Nota mínima de aprobación: {crs.nota_minima} pts</small>
+                  <small style={{ color: 'var(--text-sec)' }}>Vale {crs.ponderacion_total} puntos · aprueba con {crs.nota_minima}/100</small>
                 </div>
               );
             })
@@ -626,12 +706,14 @@ export default function CoursesPage({ user }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
             <div>
               <h3>Actividades de: {selectedCourse?.nombre || 'Seleccione un curso'}</h3>
-              <small style={{ color: 'var(--text-sec)' }}>Ponderación acumulada: <strong>{sumaPonderaciones}% / 100%</strong></small>
+              <small style={{ color: 'var(--text-sec)' }}>Puntos asignados: <strong>{sumaPonderaciones} / {totalCurso}</strong></small>
             </div>
-            <Badge
-              type={sumaPonderaciones === 100 ? 'APROBADO' : 'MEDIO'}
-              text={sumaPonderaciones === 100 ? 'Ponderación Completa (100%)' : `Incompleto (${sumaPonderaciones}%)`}
-            />
+            {selectedCourse && (
+              <Badge
+                type={sumaPonderaciones === totalCurso ? 'APROBADO' : 'MEDIO'}
+                text={sumaPonderaciones === totalCurso ? `Completo (${totalCurso} puntos)` : `Faltan ${totalCurso - sumaPonderaciones} puntos`}
+              />
+            )}
           </div>
 
           {activities.length === 0 ? (
@@ -672,9 +754,9 @@ export default function CoursesPage({ user }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ textAlign: 'right', minWidth: '90px' }}>
                       <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-navy)' }}>
-                        {act.ponderacion}%
+                        {act.ponderacion}
                       </div>
-                      <small style={{ color: 'var(--text-sec)' }}>Ponderación</small>
+                      <small style={{ color: 'var(--text-sec)' }}>puntos</small>
                     </div>
                     {(canManage || role === 'TUTOR') && act.estado === 'ACTIVO' && (
                       <button className="btn btn-outline" style={{ padding: '6px 8px' }} title="Rúbrica de evaluación" onClick={() => setRubricAct(act)}>
@@ -970,9 +1052,16 @@ export default function CoursesPage({ user }) {
             <label className="form-label">Descripción</label>
             <textarea className="form-textarea" rows={3} value={courseForm.descripcion} onChange={setCourseField('descripcion')} />
           </div>
-          <div className="form-group">
-            <label className="form-label">Nota mínima para aprobar (0 a 100)</label>
-            <input type="number" className="form-input" min="0" max="100" step="0.5" value={courseForm.nota_minima} onChange={setCourseField('nota_minima')} required />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="form-group">
+              <label className="form-label">Puntos totales del curso</label>
+              <input type="number" className="form-input" min="1" max="500" step="0.5" value={courseForm.ponderacion_total} onChange={setCourseField('ponderacion_total')} required />
+              <small>El tutor crea asignaciones y pruebas hasta llegar a este total.</small>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nota mínima para aprobar (sobre 100)</label>
+              <input type="number" className="form-input" min="0" max="100" step="0.5" value={courseForm.nota_minima} onChange={setCourseField('nota_minima')} required />
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label">Tutor del curso</label>
@@ -1016,6 +1105,17 @@ export default function CoursesPage({ user }) {
       >
         {actError && <div className="notice-danger" style={{ marginBottom: '14px' }}>{actError}</div>}
         <form onSubmit={handleSaveActivity}>
+          {!actModal?.actividad && plantillas.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Usar una plantilla del coordinador (opcional)</label>
+              <select className="form-select" defaultValue="" onChange={(e) => usarPlantilla(e.target.value)}>
+                <option value="">Crear desde cero</option>
+                {plantillas.map((p) => (
+                  <option key={p.id} value={p.id}>{p.titulo} · {p.ponderacion} pts</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="form-group">
             <label className="form-label">Título de la actividad o proyecto</label>
             <input className="form-input" placeholder="Ej. Taller 3: Optimización Matemática..." value={actForm.titulo} onChange={setActField('titulo')} minLength={3} maxLength={200} required />
@@ -1025,12 +1125,11 @@ export default function CoursesPage({ user }) {
             <div className="form-group">
               <label className="form-label">Tipo</label>
               <select className="form-select" value={actForm.tipo} onChange={setActField('tipo')}>
-                <option value="INDIVIDUAL">Actividad Individual</option>
-                <option value="PROYECTO">Proyecto Integrador</option>
+                {TIPOS_ACTIVIDAD.map((t) => <option key={t.valor} value={t.valor}>{t.texto}</option>)}
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Ponderación (%)</label>
+              <label className="form-label">Puntos</label>
               <input type="number" className="form-input" min="0.5" max="100" step="0.5" value={actForm.ponderacion} onChange={setActField('ponderacion')} required />
             </div>
             <div className="form-group">
@@ -1068,12 +1167,69 @@ export default function CoursesPage({ user }) {
           </label>
 
           <small style={{ display: 'block', marginTop: '10px' }}>
-            Ponderación disponible: {100 - sumaPonderaciones + (actModal?.actividad ? parseFloat(actModal.actividad.ponderacion) : 0)}%.
+            Puntos disponibles en el curso: {totalCurso - sumaPonderaciones + (actModal?.actividad ? parseFloat(actModal.actividad.ponderacion) : 0)} de {totalCurso}.
+            Estándar: asignación {puntosEstandar.ASIGNACION} y prueba {puntosEstandar.PRUEBA} puntos.
           </small>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
             <button type="button" className="btn btn-outline" onClick={() => setActModal(null)}>Cancelar</button>
             <button type="submit" className="btn btn-primary">{actModal?.actividad ? 'Guardar cambios' : 'Crear actividad'}</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Plantillas del programa */}
+      <Modal isOpen={tplModal} onClose={() => setTplModal(false)} title="Plantillas de actividades del programa">
+        <small style={{ display: 'block', marginBottom: '12px' }}>
+          Los tutores pueden usarlas al crear actividades en sus cursos, o crear las suyas.
+        </small>
+        {tplError && <div className="notice-danger" style={{ marginBottom: '14px' }}>{tplError}</div>}
+        {plantillas.length === 0 ? (
+          <p style={{ color: 'var(--text-sec)' }}>Todavía no hay plantillas.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+            {plantillas.map((p) => (
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '10px 12px', border: '1px solid var(--border-light)', borderRadius: '10px' }}>
+                <div>
+                  <strong>{p.titulo}</strong> <Badge type={p.tipo} />
+                  <div><small>{p.ponderacion} puntos · formatos {p.extensiones_permitidas}</small></div>
+                </div>
+                <button className="btn btn-outline" style={{ padding: '6px 8px' }} title="Eliminar plantilla" onClick={() => handleDeleteTemplate(p.id)}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <form onSubmit={handleSaveTemplate} style={{ borderTop: '1px solid var(--border-light)', paddingTop: '14px' }}>
+          <h4 style={{ marginBottom: '10px' }}>Nueva plantilla</h4>
+          <div className="form-group">
+            <label className="form-label">Título</label>
+            <input className="form-input" value={tplForm.titulo} onChange={(e) => setTplForm({ ...tplForm, titulo: e.target.value })} minLength={2} required />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+            <div className="form-group">
+              <label className="form-label">Tipo</label>
+              <select className="form-select" value={tplForm.tipo}
+                onChange={(e) => setTplForm({ ...tplForm, tipo: e.target.value, ponderacion: puntosEstandar[e.target.value] || tplForm.ponderacion })}>
+                {TIPOS_ACTIVIDAD.map((t) => <option key={t.valor} value={t.valor}>{t.texto}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Puntos</label>
+              <input type="number" className="form-input" min="0.5" max="100" step="0.5" value={tplForm.ponderacion} onChange={(e) => setTplForm({ ...tplForm, ponderacion: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Formatos</label>
+              <input className="form-input" value={tplForm.extensiones_permitidas} onChange={(e) => setTplForm({ ...tplForm, extensiones_permitidas: e.target.value })} required />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Instrucciones</label>
+            <textarea className="form-textarea" rows={2} value={tplForm.instrucciones} onChange={(e) => setTplForm({ ...tplForm, instrucciones: e.target.value })} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="submit" className="btn btn-primary">Agregar plantilla</button>
           </div>
         </form>
       </Modal>

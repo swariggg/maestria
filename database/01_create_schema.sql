@@ -695,4 +695,31 @@ IF COL_LENGTH('cursos_preparatorios', 'tutor_id') IS NULL
     ALTER TABLE cursos_preparatorios ADD tutor_id INT NULL CONSTRAINT FK_curso_tutor FOREIGN KEY REFERENCES usuarios(id);
 GO
 
+-- 34. Plantillas de actividad por programa (las deja el coordinador para los tutores)
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'plantillas_actividad')
+BEGIN
+    CREATE TABLE plantillas_actividad (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        programa_id INT NOT NULL,
+        titulo NVARCHAR(200) NOT NULL,
+        tipo NVARCHAR(50) NOT NULL DEFAULT 'ASIGNACION', -- ASIGNACION, PRUEBA, PROYECTO
+        instrucciones NVARCHAR(MAX) NULL,
+        ponderacion DECIMAL(5,2) NOT NULL,
+        es_obligatorio BIT NOT NULL DEFAULT 1,
+        extensiones_permitidas NVARCHAR(100) NOT NULL DEFAULT 'pdf,docx',
+        tamano_max_mb INT NOT NULL DEFAULT 25,
+        max_reenvios INT NOT NULL DEFAULT 3,
+        activo BIT NOT NULL DEFAULT 1,
+        creado_por INT NULL,
+        creado_en DATETIME2 DEFAULT SYSDATETIME(),
+        CONSTRAINT FK_pa_programa FOREIGN KEY (programa_id) REFERENCES programas(id),
+        CONSTRAINT FK_pa_usuario FOREIGN KEY (creado_por) REFERENCES usuarios(id)
+    );
+END
+GO
+
+-- Tipos de actividad: asignación (4 pts), prueba (6 pts) o proyecto
+UPDATE actividades_curso SET tipo = 'ASIGNACION' WHERE tipo = 'INDIVIDUAL';
+GO
+
 PRINT N'Esquema completo de APP - Maestría creado exitosamente en app_maestria.';

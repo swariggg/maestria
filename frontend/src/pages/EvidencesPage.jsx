@@ -278,7 +278,7 @@ export default function EvidencesPage({ user }) {
               {activities.length === 0 && <option value="">Sin actividades</option>}
               {activities.map((act) => (
                 <option key={act.id} value={act.id}>
-                  {act.titulo} ({act.ponderacion}%)
+                  {act.titulo} ({act.ponderacion} pts)
                 </option>
               ))}
             </select>
@@ -335,7 +335,7 @@ export default function EvidencesPage({ user }) {
           <div>
             <h3>{selectedAct?.titulo || 'Actividad seleccionada'}</h3>
             <small style={{ color: 'var(--text-sec)' }}>
-              Ponderación: {selectedAct?.ponderacion}% • Formatos: <code>{selectedAct?.extensiones_permitidas}</code> • Límite: {selectedAct ? new Date(selectedAct.fecha_limite).toLocaleDateString() : ''}
+              Vale {selectedAct?.ponderacion} puntos • Formatos: <code>{selectedAct?.extensiones_permitidas}</code> • Límite: {selectedAct ? new Date(selectedAct.fecha_limite).toLocaleDateString() : ''}
             </small>
           </div>
 
@@ -532,7 +532,7 @@ export default function EvidencesPage({ user }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             {criterios.length === 0 && (
               <div className="form-group">
-                <label className="form-label">Calificación (Ponderación máx: {selectedAct?.ponderacion})</label>
+                <label className="form-label">Calificación (máximo {selectedAct?.ponderacion} puntos)</label>
                 <input
                   type="number"
                   step="0.01"

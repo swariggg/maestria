@@ -6,6 +6,8 @@ export default function Badge({ type, text }) {
   let Icon = Info;
 
   const upper = (type || text || '').toUpperCase();
+  const NOMBRES = { ASIGNACION: 'Asignación', PRUEBA: 'Prueba', PROYECTO: 'Proyecto', INDIVIDUAL: 'Asignación' };
+  if (!text && NOMBRES[upper]) text = NOMBRES[upper];
 
   if (['APROBADO', 'BAJO', 'ACTIVO', 'COMPLETADO', 'DOCUMENTACION_COMPLETA', 'RESUELTO', 'ABIERTA'].includes(upper)) {
     badgeClass = 'badge-success';

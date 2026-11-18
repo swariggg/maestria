@@ -120,7 +120,7 @@ class CourseCreate(BaseModel):
     nombre: str = Field(min_length=3, max_length=200)
     descripcion: Optional[str] = None
     nota_minima: float = Field(70.0, ge=0, le=100)
-    ponderacion_total: float = Field(100.0, gt=0, le=100)
+    ponderacion_total: float = Field(100.0, gt=0, le=500)  # puntos totales del curso
     tutor_id: Optional[int] = None
 
 class CourseTutorUpdate(BaseModel):
@@ -132,16 +132,28 @@ class CourseUpdate(BaseModel):
     nombre: str = Field(min_length=3, max_length=200)
     descripcion: Optional[str] = None
     nota_minima: float = Field(ge=0, le=100)
+    ponderacion_total: Optional[float] = Field(default=None, gt=0, le=500)
 
 class ActivityUpdate(BaseModel):
     titulo: str = Field(min_length=2, max_length=200)
-    tipo: str = "INDIVIDUAL"
+    tipo: str = "ASIGNACION"
     instrucciones: Optional[str] = None
     fecha_apertura: datetime
     fecha_limite: datetime
     ponderacion: float = Field(gt=0, le=100)
     es_obligatorio: bool = True
     extensiones_permitidas: str = Field("pdf,zip,docx", min_length=2, max_length=100)
+    tamano_max_mb: int = Field(25, ge=1, le=50)
+    max_reenvios: int = Field(3, ge=1, le=10)
+
+class TemplateCreate(BaseModel):
+    programa_id: int
+    titulo: str = Field(min_length=2, max_length=200)
+    tipo: str = "ASIGNACION"
+    instrucciones: Optional[str] = None
+    ponderacion: float = Field(gt=0, le=100)
+    es_obligatorio: bool = True
+    extensiones_permitidas: str = Field("pdf,docx", min_length=2, max_length=100)
     tamano_max_mb: int = Field(25, ge=1, le=50)
     max_reenvios: int = Field(3, ge=1, le=10)
 
@@ -177,6 +189,7 @@ class CourseOut(BaseModel):
     estado: str
     tutor_id: Optional[int] = None
     tutor_nombre: Optional[str] = None
+    programa_id: Optional[int] = None
     actividades: List[ActivityOut] = []
 
     class Config:

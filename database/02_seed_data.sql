@@ -360,4 +360,21 @@ WHERE c.tutor_id IS NULL
   AND tp.id = (SELECT MIN(t2.id) FROM tutores_programa t2 WHERE t2.programa_id = cv.programa_id AND t2.activo = 1);
 GO
 
+-- 20. Puntos estándar y plantillas de ejemplo para cada programa
+IF NOT EXISTS (SELECT 1 FROM configuracion_sistema WHERE clave = 'PUNTOS_ASIGNACION')
+    INSERT INTO configuracion_sistema (clave, valor, descripcion, categoria) VALUES ('PUNTOS_ASIGNACION', '4', N'Puntos estándar de una asignación (el tutor puede ajustarlo en cada actividad)', 'CALIFICACION');
+IF NOT EXISTS (SELECT 1 FROM configuracion_sistema WHERE clave = 'PUNTOS_PRUEBA')
+    INSERT INTO configuracion_sistema (clave, valor, descripcion, categoria) VALUES ('PUNTOS_PRUEBA', '6', N'Puntos estándar de una prueba o evaluación', 'CALIFICACION');
+GO
+INSERT INTO plantillas_actividad (programa_id, titulo, tipo, instrucciones, ponderacion, extensiones_permitidas)
+SELECT p.id, t.titulo, t.tipo, t.instrucciones, t.puntos, t.ext
+FROM programas p
+CROSS JOIN (VALUES
+    (N'Asignación semanal', 'ASIGNACION', N'Resuelva los ejercicios de la semana y suba un solo archivo.', 4, 'pdf,docx'),
+    (N'Prueba de unidad', 'PRUEBA', N'Prueba de los temas de la unidad. Suba su desarrollo en PDF.', 6, 'pdf'),
+    (N'Proyecto final', 'PROYECTO', N'Entregue el informe y el video de la presentación.', 10, 'pdf,docx,mp4,zip')
+) AS t(titulo, tipo, instrucciones, puntos, ext)
+WHERE NOT EXISTS (SELECT 1 FROM plantillas_actividad x WHERE x.programa_id = p.id AND x.titulo = t.titulo);
+GO
+
 PRINT N'Demostración completa y configurada al 100% en app_maestria.';

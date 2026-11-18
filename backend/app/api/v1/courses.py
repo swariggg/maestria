@@ -7,10 +7,11 @@ from app.core.database import get_db
 from app.core.security import get_current_user, require_roles, verify_program_access, cursos_visibles
 from app.models.entities import (
     CursoPreparatorio, ActividadCurso, Convocatoria, Usuario, RegistroAuditoria,
-    EntregaEvidencia, VersionEvidencia, EvaluacionEvidencia, Inscripcion, CriterioEvaluacion, TutorPrograma, Tutor
+    EntregaEvidencia, VersionEvidencia, EvaluacionEvidencia, Inscripcion, CriterioEvaluacion, TutorPrograma, Tutor,
+    PlantillaActividad
 )
 from app.schemas.pydantic_models import (
-    CourseOut, CourseCreate, CourseUpdate, CourseTutorUpdate, ActivityOut, ActivityCreate, ActivityUpdate
+    CourseOut, CourseCreate, CourseUpdate, CourseTutorUpdate, TemplateCreate, ActivityOut, ActivityCreate, ActivityUpdate
 )
 from app.services.process_emails import correo_proceso_aprobado
 from app.services.progress_service import (
@@ -19,7 +20,8 @@ from app.services.progress_service import (
 
 router = APIRouter(prefix="/cursos", tags=["Cursos y Actividades"])
 
-TIPOS_ACTIVIDAD = ["INDIVIDUAL", "PROYECTO"]
+TIPOS_ACTIVIDAD = ["ASIGNACION", "PRUEBA", "PROYECTO"]
+TIPO_ANTERIOR = {"INDIVIDUAL": "ASIGNACION"}  # actividades creadas con la versión anterior
 
 
 # ---------- Utilidades ----------
@@ -36,9 +38,16 @@ def _convocatoria_editable(db: Session, user: Usuario, convocatoria_id: int, que
 
 
 def _curso_editable(db: Session, user: Usuario, curso_id: int, que: str = "actividades") -> CursoPreparatorio:
+    """El coordinador del programa edita el curso; el tutor del curso, solo sus actividades."""
     curso = db.query(CursoPreparatorio).filter(CursoPreparatorio.id == curso_id).first()
     if not curso:
         raise HTTPException(status_code=404, detail="Curso no encontrado.")
+    if user.rol.codigo == "TUTOR":
+        if que != "actividades" or curso.tutor_id != user.id:
+            raise HTTPException(status_code=403, detail="Solo el tutor de este curso puede modificar sus actividades.")
+        if curso.convocatoria.estado not in CONV_PERMITE_CURSOS:
+            raise HTTPException(status_code=400, detail=f"La convocatoria está {curso.convocatoria.estado}; ya no se pueden modificar {que}.")
+        return curso
     _convocatoria_editable(db, user, curso.convocatoria_id, que)
     return curso
 
@@ -55,7 +64,8 @@ def _codigo_unico(db: Session, convocatoria_id: int, codigo: str, excluir_id: in
 
 
 def _validar_actividad(db: Session, curso: CursoPreparatorio, data, excluir_id: int = None):
-    """Fechas, tipo y regla del 100 %: la suma de las actividades activas no supera la del curso."""
+    """Fechas, tipo y puntos: la suma de las actividades activas no supera los puntos totales del curso."""
+    data.tipo = TIPO_ANTERIOR.get(data.tipo, data.tipo)
     if data.tipo not in TIPOS_ACTIVIDAD:
         raise HTTPException(status_code=400, detail=f"Tipo inválido. Use: {', '.join(TIPOS_ACTIVIDAD)}.")
     if data.fecha_limite <= data.fecha_apertura:
@@ -70,7 +80,8 @@ def _validar_actividad(db: Session, curso: CursoPreparatorio, data, excluir_id: 
     if suma > float(curso.ponderacion_total):
         raise HTTPException(
             status_code=400,
-            detail=f"La ponderación acumulada ({suma:.1f}%) excede el {float(curso.ponderacion_total):.0f}% del curso."
+            detail=f"Las actividades sumarían {suma:g} puntos y el curso vale {float(curso.ponderacion_total):g}. "
+                   f"Quedan {float(curso.ponderacion_total) - (suma - float(data.ponderacion)):g} puntos por asignar."
         )
 
 
@@ -178,7 +189,14 @@ def update_course(
     codigo = data.codigo.strip().upper()
     _codigo_unico(db, curso.convocatoria_id, codigo, excluir_id=curso.id)
 
-    antes = {"codigo": curso.codigo, "nombre": curso.nombre, "nota_minima": float(curso.nota_minima)}
+    antes = {"codigo": curso.codigo, "nombre": curso.nombre, "nota_minima": float(curso.nota_minima),
+             "ponderacion_total": float(curso.ponderacion_total)}
+    total_cambio = data.ponderacion_total is not None and float(data.ponderacion_total) != float(curso.ponderacion_total)
+    if total_cambio:
+        usados = sum(float(a.ponderacion) for a in curso.actividades if a.estado == "ACTIVO")
+        if float(data.ponderacion_total) < usados:
+            raise HTTPException(status_code=400, detail=f"Las actividades ya suman {usados:g} puntos; el total no puede ser menor.")
+        curso.ponderacion_total = data.ponderacion_total
     curso.codigo = codigo
     curso.nombre = data.nombre.strip()
     curso.descripcion = data.descripcion
@@ -187,10 +205,11 @@ def update_course(
 
     db.flush()
     # Con otra nota mínima, algunos postulantes pueden aprobar o dejar de aprobar el curso
-    aprobados = _recalcular_inscritos(db, curso, current_user.id) if nota_cambio else []
+    aprobados = _recalcular_inscritos(db, curso, current_user.id) if (nota_cambio or total_cambio) else []
 
     _auditar(db, current_user.id, "EDITAR_CURSO", "CURSO_PREPARATORIO", curso.id, antes=antes,
-             despues={"codigo": codigo, "nombre": curso.nombre, "nota_minima": float(data.nota_minima)})
+             despues={"codigo": codigo, "nombre": curso.nombre, "nota_minima": float(data.nota_minima),
+                      "ponderacion_total": float(curso.ponderacion_total)})
     db.commit()
     _avisar_aprobados(db, aprobados)
     db.refresh(curso)
@@ -229,6 +248,71 @@ def set_course_tutor(
     return curso
 
 
+# ---------- Plantillas de actividad (por programa) ----------
+
+def _puede_ver_plantillas(db: Session, user: Usuario, programa_id: int) -> bool:
+    if user.rol.codigo == "TUTOR":
+        return db.query(TutorPrograma).filter(
+            TutorPrograma.tutor_id == user.id, TutorPrograma.programa_id == programa_id, TutorPrograma.activo == True  # noqa: E712
+        ).first() is not None
+    return verify_program_access(user, programa_id, db)
+
+
+def _plantilla_out(p: PlantillaActividad) -> dict:
+    return {"id": p.id, "programa_id": p.programa_id, "titulo": p.titulo, "tipo": p.tipo, "instrucciones": p.instrucciones,
+            "ponderacion": float(p.ponderacion), "es_obligatorio": p.es_obligatorio,
+            "extensiones_permitidas": p.extensiones_permitidas, "tamano_max_mb": p.tamano_max_mb, "max_reenvios": p.max_reenvios}
+
+
+@router.get("/plantillas")
+def list_templates(programa_id: int, current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR", "TUTOR")),
+                   db: Session = Depends(get_db)):
+    if not _puede_ver_plantillas(db, current_user, programa_id):
+        raise HTTPException(status_code=403, detail="No tiene acceso a las plantillas de este programa.")
+    filas = db.query(PlantillaActividad).filter(
+        PlantillaActividad.programa_id == programa_id, PlantillaActividad.activo == True  # noqa: E712
+    ).order_by(PlantillaActividad.tipo, PlantillaActividad.titulo).all()
+    from app.services import parametros
+    return {"plantillas": [_plantilla_out(p) for p in filas],
+            "puntos_estandar": {"ASIGNACION": parametros.get_int(db, "PUNTOS_ASIGNACION"),
+                                "PRUEBA": parametros.get_int(db, "PUNTOS_PRUEBA")}}
+
+
+@router.post("/plantillas")
+def create_template(data: TemplateCreate, current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR")),
+                    db: Session = Depends(get_db)):
+    if not verify_program_access(current_user, data.programa_id, db):
+        raise HTTPException(status_code=403, detail="No tiene permiso sobre este programa.")
+    tipo = TIPO_ANTERIOR.get(data.tipo, data.tipo)
+    if tipo not in TIPOS_ACTIVIDAD:
+        raise HTTPException(status_code=400, detail=f"Tipo inválido. Use: {', '.join(TIPOS_ACTIVIDAD)}.")
+    p = PlantillaActividad(
+        programa_id=data.programa_id, titulo=data.titulo.strip(), tipo=tipo, instrucciones=data.instrucciones,
+        ponderacion=data.ponderacion, es_obligatorio=data.es_obligatorio,
+        extensiones_permitidas=_normalizar_extensiones(data.extensiones_permitidas),
+        tamano_max_mb=data.tamano_max_mb, max_reenvios=data.max_reenvios, creado_por=current_user.id)
+    db.add(p)
+    db.flush()
+    _auditar(db, current_user.id, "CREAR_PLANTILLA", "PLANTILLA_ACTIVIDAD", p.id, despues=_plantilla_out(p))
+    db.commit()
+    db.refresh(p)
+    return _plantilla_out(p)
+
+
+@router.delete("/plantillas/{plantilla_id}")
+def delete_template(plantilla_id: int, current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR")),
+                    db: Session = Depends(get_db)):
+    p = db.query(PlantillaActividad).filter(PlantillaActividad.id == plantilla_id).first()
+    if not p or not p.activo:
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada.")
+    if not verify_program_access(current_user, p.programa_id, db):
+        raise HTTPException(status_code=403, detail="No tiene permiso sobre este programa.")
+    p.activo = False  # las actividades creadas con ella no cambian
+    _auditar(db, current_user.id, "ELIMINAR_PLANTILLA", "PLANTILLA_ACTIVIDAD", p.id)
+    db.commit()
+    return {"mensaje": "Plantilla eliminada."}
+
+
 # ---------- Actividades ----------
 
 @router.get("/{curso_id}/actividades", response_model=List[ActivityOut])
@@ -245,7 +329,7 @@ def list_activities(curso_id: int, current_user: Usuario = Depends(get_current_u
 @router.post("/actividades", response_model=ActivityOut)
 def create_activity(
     data: ActivityCreate,
-    current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR")),
+    current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR", "TUTOR")),
     db: Session = Depends(get_db)
 ):
     curso = _curso_editable(db, current_user, data.curso_id)
@@ -298,7 +382,7 @@ def _datos_actividad(act: ActividadCurso) -> dict:
 def update_activity(
     actividad_id: int,
     data: ActivityUpdate,
-    current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR")),
+    current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR", "TUTOR")),
     db: Session = Depends(get_db)
 ):
     act = _actividad_editable(db, current_user, actividad_id)
@@ -348,7 +432,7 @@ def update_activity(
 @router.delete("/actividades/{actividad_id}")
 def delete_activity(
     actividad_id: int,
-    current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR")),
+    current_user: Usuario = Depends(require_roles("ADMIN", "COORDINADOR", "TUTOR")),
     db: Session = Depends(get_db)
 ):
     """

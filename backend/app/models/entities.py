@@ -118,6 +118,10 @@ class CursoPreparatorio(Base):
     def tutor_nombre(self):
         return self.tutor.nombre_completo if self.tutor else None
 
+    @property
+    def programa_id(self):
+        return self.convocatoria.programa_id if self.convocatoria else None
+
     asignaciones = relationship("AsignacionCurso", back_populates="curso")
 
 class ActividadCurso(Base):
@@ -140,6 +144,24 @@ class ActividadCurso(Base):
     curso = relationship("CursoPreparatorio", back_populates="actividades")
     criterios = relationship("CriterioEvaluacion", back_populates="actividad")
     entregas = relationship("EntregaEvidencia", back_populates="actividad")
+
+class PlantillaActividad(Base):
+    """Modelo de actividad que el coordinador deja para un programa; el tutor la usa o crea una propia."""
+    __tablename__ = "plantillas_actividad"
+    id = Column(Integer, primary_key=True, index=True)
+    programa_id = Column(Integer, ForeignKey("programas.id"), nullable=False)
+    titulo = Column(String(200), nullable=False)
+    tipo = Column(String(50), default="ASIGNACION")
+    instrucciones = Column(Text, nullable=True)
+    ponderacion = Column(Numeric(5, 2), nullable=False)
+    es_obligatorio = Column(Boolean, default=True)
+    extensiones_permitidas = Column(String(100), default="pdf,docx")
+    tamano_max_mb = Column(Integer, default=25)
+    max_reenvios = Column(Integer, default=3)
+    activo = Column(Boolean, default=True)
+    creado_por = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    creado_en = Column(DateTime, default=datetime.utcnow)
+
 
 class CriterioEvaluacion(Base):
     __tablename__ = "criterios_evaluacion"

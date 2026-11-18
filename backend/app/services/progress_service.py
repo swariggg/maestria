@@ -169,9 +169,9 @@ def asignar_curso_a_inscritos(db: Session, curso: CursoPreparatorio) -> int:
 
 def recalcular_curso(db: Session, asig: AsignacionCurso) -> None:
     """
-    Nota del curso = suma de la última calificación registrada de cada actividad.
-    El curso se aprueba cuando la nota alcanza la mínima y todas las actividades
-    obligatorias tienen su evidencia aprobada.
+    Nota del curso sobre 100 = puntos obtenidos (última calificación de cada actividad)
+    / puntos totales del curso x 100. El curso se aprueba con la nota mínima (70 por defecto)
+    y todas las actividades obligatorias con su evidencia aprobada.
     """
     nota = 0.0
     # Solo cuentan las actividades vigentes: una dada de baja conserva su historial pero no suma
@@ -191,6 +191,8 @@ def recalcular_curso(db: Session, asig: AsignacionCurso) -> None:
     aprobadas = {e.actividad_id for e in entregas if e.estado_entrega == "APROBADO"}
     obligatorias_completas = all(a in aprobadas for a in obligatorias)
 
+    total = float(asig.curso.ponderacion_total or 100)
+    nota = round(nota / total * 100.0, 2) if total else 0.0
     asig.nota_final = nota
     if nota >= float(asig.curso.nota_minima) and obligatorias_completas:
         asig.estado_aprobacion = "APROBADO"

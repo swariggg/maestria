@@ -256,7 +256,7 @@ export default function DashboardPage({ user, onNavigate }) {
                     <tr>
                       <th>Actividad</th>
                       <th>Tipo</th>
-                      <th>Ponderación</th>
+                      <th>Puntos</th>
                       <th>Fecha Límite</th>
                       <th>Días Restantes</th>
                       <th>Estado</th>
@@ -270,7 +270,7 @@ export default function DashboardPage({ user, onNavigate }) {
                           {act.curso && <small style={{ color: 'var(--text-sec)' }}>{act.curso}{stats.inscripciones?.length > 1 ? ` · ${act.programa}` : ''}</small>}
                         </td>
                         <td><Badge type={act.tipo} /></td>
-                        <td>{act.ponderacion}%</td>
+                        <td>{act.ponderacion} pts</td>
                         <td>{act.fecha_limite}</td>
                         <td>
                           <strong style={{ color: act.dias_restantes < 5 ? 'var(--status-danger-text)' : 'inherit' }}>
