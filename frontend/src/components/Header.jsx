@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LogOut } from 'lucide-react';
 import Badge from './Badge';
 import NotificationBell from './NotificationBell';
+import { api } from '../services/api';
 
 function getInitials(name = '') {
   return name
@@ -13,15 +14,29 @@ function getInitials(name = '') {
     .join('');
 }
 
+const CERRADAS = ['NO_APROBADO', 'RETIRADO'];
+
 export default function Header({ user, onLogout, onNavigate }) {
+  // El postulante pertenece a una sola maestría: se muestra su nombre desde que entra
+  const [maestria, setMaestria] = useState(null);
+  useEffect(() => {
+    if (user?.rol?.codigo !== 'POSTULANTE') return;
+    api.getMyEnrollments()
+      .then((lista) => {
+        const actual = lista.find((i) => !CERRADAS.includes(i.estado_proceso)) || lista[0];
+        setMaestria(actual?.programa_nombre || null);
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
   return (
     <header className="header">
       <div className="brand">
         <img src="/uide-logo.svg" alt="UIDE - Universidad Internacional del Ecuador" className="brand-logo" />
         <div className="brand-divider" />
         <div>
-          <small style={{ display: 'block', lineHeight: 1.2 }}>Cursos Preparatorios de Posgrado</small>
-          <h2 style={{ fontSize: '1.15rem', margin: 0 }}>APP - Maestría</h2>
+          <small style={{ display: 'block', lineHeight: 1.2 }}>{maestria ? 'Mi maestría' : 'Cursos Preparatorios de Posgrado'}</small>
+          <h2 style={{ fontSize: '1.15rem', margin: 0 }}>{maestria || 'APP - Maestría'}</h2>
         </div>
       </div>
 

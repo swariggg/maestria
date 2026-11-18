@@ -41,9 +41,12 @@ def _inscripciones_vigentes(db: Session, postulante_id: int) -> List[Inscripcion
     ).all()
 
 
-def _se_cruzan(a: Convocatoria, b: Convocatoria) -> bool:
-    """Dos preparatorios se cruzan si sus fechas se superponen."""
-    return a.fecha_inicio_preparatorio <= b.fecha_fin_preparatorio and b.fecha_inicio_preparatorio <= a.fecha_fin_preparatorio
+def _inscripcion_en_maestria(db: Session, postulante_id: int) -> List[Inscripcion]:
+    """Inscripciones que atan al postulante a su maestría: vigentes o ya aprobadas."""
+    return db.query(Inscripcion).filter(
+        Inscripcion.postulante_id == postulante_id,
+        Inscripcion.estado_proceso.notin_(["NO_APROBADO", "RETIRADO"])
+    ).all()
 
 
 def _impedimento(db: Session, postulante_id: int, conv: Convocatoria, vigentes: List[Inscripcion]):
@@ -51,9 +54,11 @@ def _impedimento(db: Session, postulante_id: int, conv: Convocatoria, vigentes: 
     for v in vigentes:
         if v.convocatoria_id == conv.id:
             return "Ya se encuentra inscrito en esta convocatoria."
-        if _se_cruzan(v.convocatoria, conv):
-            return (f"Sus fechas se cruzan con su inscripción vigente en '{v.convocatoria.nombre}' "
-                    f"({v.convocatoria.fecha_inicio_preparatorio} a {v.convocatoria.fecha_fin_preparatorio}).")
+    # Un postulante solo puede estar en una maestría: la vigente o la que ya aprobó
+    for v in _inscripcion_en_maestria(db, postulante_id):
+        if v.convocatoria_id != conv.id:
+            return (f"Ya pertenece a la maestría '{v.convocatoria.programa.nombre}'. "
+                    "Un postulante solo puede estar en una maestría.")
     if inscritos_vigentes(db, conv.id) >= conv.cupo_maximo:
         return "La convocatoria ya no tiene cupos disponibles."
     return None

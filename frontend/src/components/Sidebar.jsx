@@ -34,7 +34,10 @@ export default function Sidebar({ user, activeTab, setActiveTab }) {
     { id: 'audit', label: 'Auditoría Global', icon: History, roles: ['ADMIN'] },
   ];
 
-  const visibleItems = navItems.filter(item => item.roles.includes(role));
+  const visibleItems = navItems
+    .filter(item => item.roles.includes(role))
+    // El postulante está en una sola maestría: en su menú solo ve sus cursos
+    .map(item => (role === 'POSTULANTE' && item.id === 'courses' ? { ...item, label: 'Mis cursos' } : item));
 
   // Píldora que se desliza hasta la opción activa
   const navRef = useRef(null);

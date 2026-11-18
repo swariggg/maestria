@@ -76,8 +76,17 @@ def list_programs(current_user: Usuario = Depends(get_current_user), db: Session
             CoordinadorPrograma.coordinador_id == current_user.id,
             CoordinadorPrograma.activo == True
         ).all()
+    elif current_user.rol.codigo == "POSTULANTE":
+        # El postulante pertenece a una sola maestría: la de su inscripción vigente o aprobada
+        # (si no tiene, la de su inscripción más reciente)
+        inscripciones = db.query(Inscripcion).filter(
+            Inscripcion.postulante_id == current_user.id
+        ).order_by(Inscripcion.fecha_inscripcion.desc()).all()
+        actual = next((i for i in inscripciones if i.estado_proceso not in ("NO_APROBADO", "RETIRADO")), None)
+        elegida = actual or (inscripciones[0] if inscripciones else None)
+        return [elegida.convocatoria.programa] if elegida else []
     else:
-        # Postulante / Tutor: programas activos
+        # Tutor: programas activos
         return db.query(Programa).filter(Programa.estado == "ACTIVO").all()
 
 @router.post("", response_model=ProgramOut)

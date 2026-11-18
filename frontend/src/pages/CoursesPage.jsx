@@ -466,6 +466,8 @@ export default function CoursesPage({ user }) {
 
   const role = user?.rol?.codigo;
   const canManage = ['ADMIN', 'COORDINADOR'].includes(role);
+  const esPostulante = role === 'POSTULANTE';
+  const miMaestria = esPostulante ? programs[0] : null;
   const sumaPonderaciones = activities
     .filter((a) => a.estado === 'ACTIVO')
     .reduce((acc, a) => acc + parseFloat(a.ponderacion || 0), 0);
@@ -487,9 +489,11 @@ export default function CoursesPage({ user }) {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1>Programas de Maestría y Cursos Preparatorios</h1>
+          <h1>{esPostulante ? 'Mis cursos preparatorios' : 'Programas de Maestría y Cursos Preparatorios'}</h1>
           <p style={{ color: 'var(--text-sec)' }}>
-            Estructuración curricular, actividades de nivelación y control de ponderaciones.
+            {esPostulante
+              ? (miMaestria ? <>Maestría: <strong style={{ color: 'var(--color-uide)' }}>{miMaestria.nombre}</strong>. Entre a un curso para ver sus actividades.</> : 'Aún no está inscrito en una maestría.')
+              : 'Estructuración curricular, actividades de nivelación y control de ponderaciones.'}
           </p>
         </div>
 
@@ -534,6 +538,7 @@ export default function CoursesPage({ user }) {
       )}
 
       {/* Programas de Maestría */}
+      {!esPostulante && (<>
       <h3 style={{ marginBottom: '12px' }}>Programas de Maestría</h3>
       {!loading && programs.length === 0 ? (
         <div className="card" style={{ marginBottom: '28px' }}>
@@ -652,13 +657,14 @@ export default function CoursesPage({ user }) {
           })}
         </div>
       )}
+      </>)}
 
       <div className="courses-stack">
         {/* Cursos como tarjetas con figuras de fondo */}
         <section>
           <h3 style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Layers size={18} color="var(--color-navy)" />
-            <span>{canManage ? 'Cursos Activos' : 'Mis cursos'}</span>
+            <span>{canManage ? 'Cursos Activos' : esPostulante ? 'Cursos para entrar' : 'Mis cursos'}</span>
           </h3>
 
           {loading ? (
